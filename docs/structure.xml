@@ -1,0 +1,3179 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project title="wow_ah" version="2.9.0">
+  <partials/>
+  <file path="wow_ah_test.php" generated-path="wow_ah_test.html" hash="f9c95844f3a30844e595f7aeb0d607b9" package="wow_ah">
+    <docblock line="0">
+      <description>wow_ah_test.php is a simple command line interface for testing the wow_ah API</description>
+      <long-description>Commands:
++ help
++ login:`username`:`password`
++ get_character_list
++ select_character:`#`
++ get_money
++ get_mail
++ get_mail_info
++ get_character
++ update_inventory
++ update_auctions
++ search:`name`:`category`:`minlevel`:`maxlevel`:`quality`:`sort`:`reverse`:`limit`:`item_id`
++ bid:`auction_id`:`amount`
++ create_auction:`item_id`:`duration`:`quantity`:`stacks`:`buyout per item`:`bid per item`
++ cancel_auction:`auction_id`
++ take_money:`mail_ids`
++ take_all_money
++ flush_log
+
+Copyright (C) 2016 Aram Akhavan &lt;kaysond@hotmail.com&gt;
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see &lt;http://www.gnu.org/licenses/&gt;.</long-description>
+      <tag name="package" line="0" description="wow_ah"/>
+      <tag name="author" line="0" description="Aram Akhavan" link="mailto:kaysond@hotmail.com"/>
+      <tag name="link" line="0" description="https://github.com/kaysond/wow_ah" link="https://github.com/kaysond/wow_ah"/>
+      <tag name="copyright" line="0" description="2016 Aram Akhavan"/>
+    </docblock>
+    <source>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</source>
+  </file>
+  <file path="wow_ah.class.php" generated-path="wow_ah.class.html" hash="914aa4cb75cdf31c2b48eb17a12ada9d" package="wow_ah">
+    <docblock line="0">
+      <description>wow_ah.class.php is a low level API for accessing the World of Warcraft Auction House via the Armory website</description>
+      <long-description>Contains the main API class (wow_ah\wow_ah) and necessary helper classes, objects, and functions
+
+Copyright (C) 2016 Aram Akhavan &lt;kaysond@hotmail.com&gt;
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see &lt;http://www.gnu.org/licenses/&gt;.</long-description>
+      <tag name="package" line="0" description="wow_ah"/>
+      <tag name="author" line="0" description="Aram Akhavan" link="mailto:kaysond@hotmail.com"/>
+      <tag name="link" line="0" description="https://github.com/kaysond/wow_ah" link="https://github.com/kaysond/wow_ah"/>
+      <tag name="copyright" line="0" description="2016 Aram Akhavan"/>
+    </docblock>
+    <constant namespace="wow_ah" line="30" package="wow_ah">
+      <name>LOG_API</name>
+      <full_name>\wow_ah\LOG_API</full_name>
+      <value>false</value>
+      <docblock line="30">
+        <description>Whether the API should log its transactions</description>
+        <long-description></long-description>
+        <tag name="package" line="30" description="wow_ah"/>
+      </docblock>
+    </constant>
+    <constant namespace="wow_ah" line="32" package="wow_ah">
+      <name>LOG_HTTP</name>
+      <full_name>\wow_ah\LOG_HTTP</full_name>
+      <value>false</value>
+      <docblock line="32">
+        <description>Whether the API should log all HTTP requests and responses</description>
+        <long-description></long-description>
+        <tag name="package" line="32" description="wow_ah"/>
+      </docblock>
+    </constant>
+    <constant namespace="wow_ah" line="37" package="wow_ah">
+      <name>LOGIN_REDIRECT_LIMIT</name>
+      <full_name>\wow_ah\LOGIN_REDIRECT_LIMIT</full_name>
+      <value>4</value>
+      <docblock line="37">
+        <description>How many times the battle.net server can redirect the API to the login page before
+the API considers the user logged out</description>
+        <long-description></long-description>
+        <tag name="package" line="37" description="wow_ah"/>
+      </docblock>
+    </constant>
+    <constant namespace="wow_ah" line="39" package="wow_ah">
+      <name>LOG_API_INTERVAL</name>
+      <full_name>\wow_ah\LOG_API_INTERVAL</full_name>
+      <value>30</value>
+      <docblock line="39">
+        <description>How many seconds to wait at minimum before flushing the log buffer to the file.</description>
+        <long-description></long-description>
+        <tag name="package" line="39" description="wow_ah"/>
+      </docblock>
+    </constant>
+    <constant namespace="wow_ah" line="41" package="wow_ah">
+      <name>TRANSACTION_LIMIT</name>
+      <full_name>\wow_ah\TRANSACTION_LIMIT</full_name>
+      <value>200</value>
+      <docblock line="41">
+        <description>How many transactions are allowed before certain functions are disabled</description>
+        <long-description></long-description>
+        <tag name="package" line="41" description="wow_ah"/>
+      </docblock>
+    </constant>
+    <constant namespace="wow_ah" line="43" package="wow_ah">
+      <name>SRP_CUSTOM_JS_FILE</name>
+      <full_name>\wow_ah\SRP_CUSTOM_JS_FILE</full_name>
+      <value>"wow_ah_srp.js"</value>
+      <docblock line="43">
+        <description>Location of the file containing additional JavaScript for the login procedure</description>
+        <long-description></long-description>
+        <tag name="package" line="43" description="wow_ah"/>
+      </docblock>
+    </constant>
+    <class final="false" abstract="false" namespace="wow_ah" line="51" package="wow_ah">
+      <extends/>
+      <name>wow_ah</name>
+      <full_name>\wow_ah\wow_ah</full_name>
+      <docblock line="51">
+        <description>The main API class</description>
+        <long-description></long-description>
+        <tag name="package" line="51" description="wow_ah"/>
+      </docblock>
+      <property static="false" visibility="private" namespace="wow_ah" line="54" package="wow_ah">
+        <name>$ch</name>
+        <full_name>\wow_ah\wow_ah::ch</full_name>
+        <default></default>
+        <docblock line="54">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="54" description="&lt;p&gt;cURL resource&lt;/p&gt;" type="resource" variable="">
+            <type>resource</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="private" namespace="wow_ah" line="56" package="wow_ah">
+        <name>$cookiefile</name>
+        <full_name>\wow_ah\wow_ah::cookiefile</full_name>
+        <default></default>
+        <docblock line="56">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="56" description="&lt;p&gt;Location of the cURL cookie jar/file&lt;/p&gt;" type="string" variable="">
+            <type>string</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="private" namespace="wow_ah" line="58" package="wow_ah">
+        <name>$region</name>
+        <full_name>\wow_ah\wow_ah::region</full_name>
+        <default></default>
+        <docblock line="58">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="58" description="&lt;p&gt;The battle.net region specified by the user in the constructor&lt;/p&gt;" type="string" variable="">
+            <type>string</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="private" namespace="wow_ah" line="60" package="wow_ah">
+        <name>$lang</name>
+        <full_name>\wow_ah\wow_ah::lang</full_name>
+        <default></default>
+        <docblock line="60">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="60" description="&lt;p&gt;The battle.net language specified by the user in the constructor&lt;/p&gt;" type="string" variable="">
+            <type>string</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="private" namespace="wow_ah" line="65" package="wow_ah">
+        <name>$browser_info</name>
+        <full_name>\wow_ah\wow_ah::browser_info</full_name>
+        <default></default>
+        <docblock line="65">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="65" description="&lt;p&gt;A browser_info object the API uses to generate HTTP requests&lt;/p&gt;" type="object" variable="">
+            <type>object</type>
+          </tag>
+          <tag name="see" line="65" description="" link="\wow_ah\browser_info"/>
+        </docblock>
+      </property>
+      <property static="false" visibility="private" namespace="wow_ah" line="70" package="wow_ah">
+        <name>$fp</name>
+        <full_name>\wow_ah\wow_ah::fp</full_name>
+        <default></default>
+        <docblock line="70">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="70" description="&lt;p&gt;JSON-encoded browser fingerprint&lt;/p&gt;" type="string" variable="">
+            <type>string</type>
+          </tag>
+          <tag name="see" line="70" description="" link="\wow_ah\wow_ah::generate_fp()"/>
+        </docblock>
+      </property>
+      <property static="false" visibility="private" namespace="wow_ah" line="72" package="wow_ah">
+        <name>$character_list</name>
+        <full_name>\wow_ah\wow_ah::character_list</full_name>
+        <default>array()</default>
+        <docblock line="72">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="72" description="&lt;p&gt;An indexed array listing all of the accounts character's, where the 0th index is the selected character for API transactions&lt;/p&gt;" type="array" variable="">
+            <type>array</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="private" namespace="wow_ah" line="74" package="wow_ah">
+        <name>$character</name>
+        <full_name>\wow_ah\wow_ah::character</full_name>
+        <default>array()</default>
+        <docblock line="74">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="74" description="&lt;p&gt;An associative array containing the character information occasionally sent by the server&lt;/p&gt;" type="array" variable="">
+            <type>array</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="private" namespace="wow_ah" line="76" package="wow_ah">
+        <name>$money</name>
+        <full_name>\wow_ah\wow_ah::money</full_name>
+        <default>0</default>
+        <docblock line="76">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="76" description="&lt;p&gt;The amount of money the selected character has&lt;/p&gt;" type="integer" variable="">
+            <type>integer</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="private" namespace="wow_ah" line="78" package="wow_ah">
+        <name>$mail</name>
+        <full_name>\wow_ah\wow_ah::mail</full_name>
+        <default>array()</default>
+        <docblock line="78">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="78" description="&lt;p&gt;The contents of the character's mail&lt;/p&gt;" type="array" variable="">
+            <type>array</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="private" namespace="wow_ah" line="80" package="wow_ah">
+        <name>$mail_info</name>
+        <full_name>\wow_ah\wow_ah::mail_info</full_name>
+        <default>array()</default>
+        <docblock line="80">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="80" description="&lt;p&gt;The &quot;mail_info&quot; sent by the servers, containing the number of messages, and the maximum number allowed&lt;/p&gt;" type="array" variable="">
+            <type>array</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="private" namespace="wow_ah" line="85" package="wow_ah">
+        <name>$inventory</name>
+        <full_name>\wow_ah\wow_ah::inventory</full_name>
+        <default>array()</default>
+        <docblock line="85">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="85" description="&lt;p&gt;The contents of the selected character's inventory (bags, mail, and bank)&lt;/p&gt;" type="array" variable="">
+            <type>array</type>
+          </tag>
+          <tag name="see" line="85" description="" link="\wow_ah\inventory_item"/>
+        </docblock>
+      </property>
+      <property static="false" visibility="private" namespace="wow_ah" line="93" package="wow_ah">
+        <name>$auctions</name>
+        <full_name>\wow_ah\wow_ah::auctions</full_name>
+        <default></default>
+        <docblock line="93">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="93" description="&lt;p&gt;All of the auctions for the selected character.&lt;/p&gt;" type="object" variable="">
+            <type>object</type>
+          </tag>
+          <tag name="see" line="93" description="" link="\wow_ah\auctions"/>
+          <tag name="see" line="93" description="" link="\wow_ah\active_auction"/>
+          <tag name="see" line="93" description="" link="\wow_ah\ended_auction"/>
+          <tag name="see" line="93" description="" link="\wow_ah\sold_auction"/>
+        </docblock>
+      </property>
+      <property static="false" visibility="private" namespace="wow_ah" line="95" package="wow_ah">
+        <name>$transaction_count</name>
+        <full_name>\wow_ah\wow_ah::transaction_count</full_name>
+        <default>0</default>
+        <docblock line="95">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="95" description="&lt;p&gt;The number of transactions executed by the API&lt;/p&gt;" type="integer" variable="">
+            <type>integer</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="private" namespace="wow_ah" line="97" package="wow_ah">
+        <name>$xstoken</name>
+        <full_name>\wow_ah\wow_ah::xstoken</full_name>
+        <default></default>
+        <docblock line="97">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="97" description="&lt;p&gt;Some sort of cross-site token for battle.net, sent with some requests&lt;/p&gt;" type="string" variable="">
+            <type>string</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="private" namespace="wow_ah" line="99" package="wow_ah">
+        <name>$logged_in</name>
+        <full_name>\wow_ah\wow_ah::logged_in</full_name>
+        <default>false</default>
+        <docblock line="99">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="99" description="&lt;p&gt;Whether the API thinks the character is logged in to battle.net&lt;/p&gt;" type="boolean" variable="">
+            <type>boolean</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="private" namespace="wow_ah" line="101" package="wow_ah">
+        <name>$char_in_game</name>
+        <full_name>\wow_ah\wow_ah::char_in_game</full_name>
+        <default>false</default>
+        <docblock line="101">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="101" description="&lt;p&gt;Whether the API has detected that the account is logged into the game client&lt;/p&gt;" type="boolean" variable="">
+            <type>boolean</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="private" namespace="wow_ah" line="103" package="wow_ah">
+        <name>$login_redirects</name>
+        <full_name>\wow_ah\wow_ah::login_redirects</full_name>
+        <default>0</default>
+        <docblock line="103">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="103" description="&lt;p&gt;How many times an HTTP request has been 302 redirected to the login page (in a row)&lt;/p&gt;" type="integer" variable="">
+            <type>integer</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="private" namespace="wow_ah" line="108" package="wow_ah">
+        <name>$last_http</name>
+        <full_name>\wow_ah\wow_ah::last_http</full_name>
+        <default></default>
+        <docblock line="108">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="108" description="&lt;p&gt;The last HTTP transaction made by the API, for error handling.&lt;/p&gt;" type="object" variable="">
+            <type>object</type>
+          </tag>
+          <tag name="see" line="108" description="" link="\wow_ah\http_transaction"/>
+        </docblock>
+      </property>
+      <property static="false" visibility="private" namespace="wow_ah" line="110" package="wow_ah">
+        <name>$logfile</name>
+        <full_name>\wow_ah\wow_ah::logfile</full_name>
+        <default></default>
+        <docblock line="110">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="110" description="&lt;p&gt;The location of the log file&lt;/p&gt;" type="string" variable="">
+            <type>string</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="private" namespace="wow_ah" line="112" package="wow_ah">
+        <name>$log</name>
+        <full_name>\wow_ah\wow_ah::log</full_name>
+        <default>array()</default>
+        <docblock line="112">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="112" description="&lt;p&gt;A buffer for log entries so the disk access is not excessive&lt;/p&gt;" type="array" variable="">
+            <type>array</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="private" namespace="wow_ah" line="114" package="wow_ah">
+        <name>$last_log_time</name>
+        <full_name>\wow_ah\wow_ah::last_log_time</full_name>
+        <default>0</default>
+        <docblock line="114">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="114" description="&lt;p&gt;Timestamp of the last log flush to file&lt;/p&gt;" type="integer" variable="">
+            <type>integer</type>
+          </tag>
+        </docblock>
+      </property>
+      <method final="false" abstract="false" static="false" visibility="public" namespace="wow_ah" line="130" package="wow_ah">
+        <name>__construct</name>
+        <full_name>\wow_ah\wow_ah::__construct()</full_name>
+        <docblock line="130">
+          <description>Constructs the API</description>
+          <long-description>The constructor sets the Battle.net region, the language, the location
+of the curl cookie file, the log file, and information about the browser
+that the API will present</long-description>
+          <tag name="param" line="130" description="&lt;p&gt;Battle.net region to use as the subdomain (e.g. &quot;us&quot;)&lt;/p&gt;" type="string" variable="$region">
+            <type>string</type>
+          </tag>
+          <tag name="param" line="130" description="&lt;p&gt;Battle.net language (e.g. &quot;en&quot;, used in the url as /wow/en/)&lt;/p&gt;" type="string" variable="$lang">
+            <type>string</type>
+          </tag>
+          <tag name="param" line="130" description="&lt;p&gt;Location of the file that stores cookies&lt;/p&gt;" type="string" variable="$cookiefile">
+            <type>string</type>
+          </tag>
+          <tag name="param" line="130" description="&lt;p&gt;Location of the log file. This contains errors and log entries&lt;/p&gt;" type="string" variable="$logfile">
+            <type>string</type>
+          </tag>
+          <tag name="param" line="130" description="&lt;p&gt;An associative array containing information about the browser&lt;/p&gt;" type="array" variable="$browser_info">
+            <type>array</type>
+          </tag>
+          <tag name="see" line="130" description="" link="\wow_ah\browser_info"/>
+        </docblock>
+        <argument line="0" by_reference="false">
+          <name>$region</name>
+          <default></default>
+          <type>string</type>
+        </argument>
+        <argument line="0" by_reference="false">
+          <name>$lang</name>
+          <default></default>
+          <type>string</type>
+        </argument>
+        <argument line="0" by_reference="false">
+          <name>$cookiefile</name>
+          <default></default>
+          <type>string</type>
+        </argument>
+        <argument line="0" by_reference="false">
+          <name>$logfile</name>
+          <default></default>
+          <type>string</type>
+        </argument>
+        <argument line="0" by_reference="false">
+          <name>$browser_info</name>
+          <default></default>
+          <type>array</type>
+        </argument>
+      </method>
+      <method final="false" abstract="false" static="false" visibility="public" namespace="wow_ah" line="190" package="wow_ah">
+        <name>is_logged_in</name>
+        <full_name>\wow_ah\wow_ah::is_logged_in()</full_name>
+        <docblock line="190">
+          <description>Checks if the API thinks the user is logged in</description>
+          <long-description>The API keeps track of when the user has logged in.
+There is some issue with the Blizzard servers that intermittently
+causes the session cookies to become invalid on their end, resulting
+in all requests returning HTTP code 302. If this happens too many times,
+the API will assume such an issue has occurred, and the user must re-login.</long-description>
+          <tag name="return" line="190" description="True if the user is logged in" type="boolean">
+            <type>boolean</type>
+          </tag>
+        </docblock>
+      </method>
+      <method final="false" abstract="false" static="false" visibility="public" namespace="wow_ah" line="202" package="wow_ah">
+        <name>get_character_list</name>
+        <full_name>\wow_ah\wow_ah::get_character_list()</full_name>
+        <docblock line="202">
+          <description>Gets the list of characters associated with the account</description>
+          <long-description>Returns all of the characters on the account. The character
+at index 0 is being used for the API transactions.</long-description>
+          <tag name="return" line="202" description="An indexed array of all the characters on the account" type="array">
+            <type>array</type>
+          </tag>
+        </docblock>
+      </method>
+      <method final="false" abstract="false" static="false" visibility="public" namespace="wow_ah" line="215" package="wow_ah">
+        <name>get_character</name>
+        <full_name>\wow_ah\wow_ah::get_character()</full_name>
+        <docblock line="215">
+          <description>Gets information about the selected character</description>
+          <long-description>Certain requests to the Armory return a JSON object containing information
+about the selected character such as Realm, race, talents, class, faction, etc.
+This is stored without any formatting as an associative array.</long-description>
+          <tag name="return" line="215" description="An associative array with information about the selected character" type="array">
+            <type>array</type>
+          </tag>
+        </docblock>
+      </method>
+      <method final="false" abstract="false" static="false" visibility="public" namespace="wow_ah" line="224" package="wow_ah">
+        <name>get_money</name>
+        <full_name>\wow_ah\wow_ah::get_money()</full_name>
+        <docblock line="224">
+          <description>Gets the amount of money the current character has</description>
+          <long-description></long-description>
+          <tag name="return" line="224" description="The amount of money in copper" type="integer">
+            <type>integer</type>
+          </tag>
+        </docblock>
+      </method>
+      <method final="false" abstract="false" static="false" visibility="public" namespace="wow_ah" line="236" package="wow_ah">
+        <name>get_mail</name>
+        <full_name>\wow_ah\wow_ah::get_mail()</full_name>
+        <docblock line="236">
+          <description>Gets the contents of the character's mailbox</description>
+          <long-description>The Armory website occasionally sends AJAX requests to get the character's mail
+contents and that is stored without any formatting.</long-description>
+          <tag name="return" line="236" description="An associative array with the character's mail content" type="array">
+            <type>array</type>
+          </tag>
+        </docblock>
+      </method>
+      <method final="false" abstract="false" static="false" visibility="public" namespace="wow_ah" line="245" package="wow_ah">
+        <name>get_mail_info</name>
+        <full_name>\wow_ah\wow_ah::get_mail_info()</full_name>
+        <docblock line="245">
+          <description>Gets the number of messages in the mailbox</description>
+          <long-description></long-description>
+          <tag name="return" line="245" description="An associative array containing the max, current, and total messages" type="array">
+            <type>array</type>
+          </tag>
+        </docblock>
+      </method>
+      <method final="false" abstract="false" static="false" visibility="public" namespace="wow_ah" line="259" package="wow_ah">
+        <name>get_inventory</name>
+        <full_name>\wow_ah\wow_ah::get_inventory()</full_name>
+        <docblock line="259">
+          <description>Gets the contents of the selected character's inventory, bank, and mail</description>
+          <long-description>Returns an array of inventory_item objects representing the selected
+character's inventory. This must first be populated with update_inventory()</long-description>
+          <tag name="see" line="259" description="" link="\wow_ah\inventory_item"/>
+          <tag name="return" line="259" description="An indexed array containing one object per inventory item" type="array">
+            <type>array</type>
+          </tag>
+        </docblock>
+      </method>
+      <method final="false" abstract="false" static="false" visibility="public" namespace="wow_ah" line="277" package="wow_ah">
+        <name>get_auctions</name>
+        <full_name>\wow_ah\wow_ah::get_auctions()</full_name>
+        <docblock line="277">
+          <description>Gets the auctions of the selected character</description>
+          <long-description>Returns an object containing three properties (active, sold, ended) each of which
+is an array containing its respective type of *_auction object. This must first be
+populated with update_auctions()</long-description>
+          <tag name="see" line="277" description="" link="\wow_ah\auctions"/>
+          <tag name="see" line="277" description="" link="\wow_ah\active_auction"/>
+          <tag name="see" line="277" description="" link="\wow_ah\sold_auction"/>
+          <tag name="see" line="277" description="" link="\wow_ah\ended_auction"/>
+          <tag name="return" line="277" description="An auctions object" type="object">
+            <type>object</type>
+          </tag>
+        </docblock>
+      </method>
+      <method final="false" abstract="false" static="false" visibility="public" namespace="wow_ah" line="290" package="wow_ah">
+        <name>get_transaction_count</name>
+        <full_name>\wow_ah\wow_ah::get_transaction_count()</full_name>
+        <docblock line="290">
+          <description>Returns the number of transactions executed by the API</description>
+          <long-description>The Armory has a limit of 200 transactions per day, so the API keeps track of every auction won
+and every auction created (each stack counts as one). After this number hits a user-defined limit it will disable
+bidding and auction creation. It cannot keep track of transactions made outside the API.</long-description>
+          <tag name="return" line="290" description="The number of transactions executed by the API" type="integer">
+            <type>integer</type>
+          </tag>
+        </docblock>
+      </method>
+      <method final="false" abstract="false" static="false" visibility="public" namespace="wow_ah" line="297" package="wow_ah">
+        <name>reset_transaction_count</name>
+        <full_name>\wow_ah\wow_ah::reset_transaction_count()</full_name>
+        <docblock line="297">
+          <description>Resets the tracked transaction count to zero.</description>
+          <long-description></long-description>
+        </docblock>
+      </method>
+      <method final="false" abstract="false" static="false" visibility="public" namespace="wow_ah" line="310" package="wow_ah">
+        <name>is_char_in_game</name>
+        <full_name>\wow_ah\wow_ah::is_char_in_game()</full_name>
+        <docblock line="310">
+          <description>Check if the account is logged into the game</description>
+          <long-description>If the account is logged into the game, certain Armory features are disabled,
+and the same are disabled in the API. Searching is essentially the only usable feature
+when this happens.</long-description>
+          <tag name="return" line="310" description="True if the server response indicates that a character is logged in" type="boolean">
+            <type>boolean</type>
+          </tag>
+        </docblock>
+      </method>
+      <method final="false" abstract="false" static="true" visibility="public" namespace="wow_ah" line="319" package="wow_ah">
+        <name>format_money_string</name>
+        <full_name>\wow_ah\wow_ah::format_money_string()</full_name>
+        <docblock line="319">
+          <description>Takes the number of copper and returns a "decimal" string of gold (i.e. "gggg.ss.cc")</description>
+          <long-description></long-description>
+          <tag name="param" line="319" description="&lt;p&gt;The amount of money in copper&lt;/p&gt;" type="integer" variable="$money">
+            <type>integer</type>
+          </tag>
+          <tag name="return" line="319" description="The formatted string" type="string">
+            <type>string</type>
+          </tag>
+        </docblock>
+        <argument line="0" by_reference="false">
+          <name>$money</name>
+          <default></default>
+          <type>integer</type>
+        </argument>
+      </method>
+      <method final="false" abstract="false" static="false" visibility="public" namespace="wow_ah" line="344" package="wow_ah">
+        <name>login</name>
+        <full_name>\wow_ah\wow_ah::login()</full_name>
+        <docblock line="344">
+          <description>Logs the user in</description>
+          <long-description>Login procedure:
++ GET https://worldofwarcraft.com/{lang}-{region}/ - no referrer
++ GET https://worldofwarcraft.com/{lang}-{region}/login - referrer https://worldofwarcraft.com/en-us/
++ Follow redirects to the login page, which should match the url {region}.battle.net/login/{lang}/ and return a code 200
++ Check for captcha
++ POST srp info - referer login form url
++ POST login form - referer login form url
++ If the last url is the login form - bad password.
++ If the last url is authenticator, send status checks until accepted, then GET authenticator url + 17 digit random number - referer authenticator url
++ Should end up at wow website, which should match the url https://worldofwarcraft.com/{lang}-{region}/ with a code 200
++ GET the first character URL (matching http://{region}.battle.net/wow/{lang}/character/{server}/{character}/simple) - referer wow website
++ Make sure you actually get there
++ Get auction house index - referer first character URL</long-description>
+          <tag name="param" line="344" description="&lt;p&gt;Battle.net username&lt;/p&gt;" type="string" variable="$username">
+            <type>string</type>
+          </tag>
+          <tag name="param" line="344" description="&lt;p&gt;Battle.net password&lt;/p&gt;" type="string" variable="$password">
+            <type>string</type>
+          </tag>
+          <tag name="return" line="344" description="True on success" type="boolean">
+            <type>boolean</type>
+          </tag>
+        </docblock>
+        <argument line="0" by_reference="false">
+          <name>$username</name>
+          <default></default>
+          <type>string</type>
+        </argument>
+        <argument line="0" by_reference="false">
+          <name>$password</name>
+          <default></default>
+          <type>string</type>
+        </argument>
+      </method>
+      <method final="false" abstract="false" static="false" visibility="public" namespace="wow_ah" line="562" package="wow_ah">
+        <name>select_character</name>
+        <full_name>\wow_ah\wow_ah::select_character()</full_name>
+        <docblock line="562">
+          <description>Selects a character to be used for API transactions</description>
+          <long-description>Whichever character is in the 0'th index of the character list
+is used for all API transactions. This function moves the selected character
+to that index, so the whole character list will change.</long-description>
+          <tag name="param" line="562" description="&lt;p&gt;Index of the character to be used, from get_character_list()&lt;/p&gt;" type="integer" variable="$index">
+            <type>integer</type>
+          </tag>
+          <tag name="return" line="562" description="True on success" type="boolean">
+            <type>boolean</type>
+          </tag>
+        </docblock>
+        <argument line="0" by_reference="false">
+          <name>$index</name>
+          <default></default>
+          <type>integer</type>
+        </argument>
+      </method>
+      <method final="false" abstract="false" static="false" visibility="public" namespace="wow_ah" line="620" package="wow_ah">
+        <name>search</name>
+        <full_name>\wow_ah\wow_ah::search()</full_name>
+        <docblock line="620">
+          <description>Performs a search of the auction house</description>
+          <long-description>Searches the auction house. For all filters, a value of -1 (int or string) disables them. Specifying an item_id
+guarantees only that item is returned, and still allows for filtering. Some error checking is performed on values that are
+not entered raw on the website. The API pauses for 1 second between consecutive requests (the website returns a
+maximum of 40 results at a time) for a single search. The Armory returns only the first 200 results.</long-description>
+          <tag name="param" line="620" description="&lt;p&gt;Item name&lt;/p&gt;" type="string" variable="$name">
+            <type>string</type>
+          </tag>
+          <tag name="param" line="620" description="&lt;p&gt;Category, subcategory, and sub-sub category, separated by commas (see categories.txt) (e.g. 0,2)&lt;/p&gt;" type="string" variable="$category">
+            <type>string</type>
+          </tag>
+          <tag name="param" line="620" description="&lt;p&gt;Minimum level&lt;/p&gt;" type="integer" variable="$minlevel">
+            <type>integer</type>
+          </tag>
+          <tag name="param" line="620" description="&lt;p&gt;Maximum level&lt;/p&gt;" type="integer" variable="$maxlevel">
+            <type>integer</type>
+          </tag>
+          <tag name="param" line="620" description="&lt;p&gt;Minimum item quality (0 = Poor, 1 = Common, 2 = Uncommon, 3 = Rare, 4 = Epic)&lt;/p&gt;" type="integer" variable="$quality">
+            <type>integer</type>
+          </tag>
+          <tag name="param" line="620" description="&lt;p&gt;How to sort results (&quot;rarity&quot;, &quot;quantity&quot;, &quot;level&quot;, &quot;ilvl&quot;, &quot;time&quot;, &quot;bid&quot;, &quot;unitBid&quot;, &quot;buyout&quot;, &quot;unitBuyout&quot;)&lt;/p&gt;" type="string" variable="$sort">
+            <type>string</type>
+          </tag>
+          <tag name="param" line="620" description="&lt;p&gt;True is descending, false is ascending&lt;/p&gt;" type="boolean" variable="$reverse">
+            <type>boolean</type>
+          </tag>
+          <tag name="param" line="620" description="&lt;p&gt;How many auctions to return, -1 for all (Armory limits to 200)&lt;/p&gt;" type="integer" variable="$limit">
+            <type>integer</type>
+          </tag>
+          <tag name="param" line="620" description="&lt;p&gt;A user-specified time stamp (mysql format, e.g. date(&quot;Y-m-d H:i:s&quot;)) to add to all results of this search. Useful for data analysis&lt;/p&gt;" type="string" variable="$timestamp">
+            <type>string</type>
+          </tag>
+          <tag name="param" line="620" description="&lt;p&gt;WoW item id. When this is not 0, disables name, category, minlevel, maxlevel, and quality fields&lt;/p&gt;" type="integer" variable="$item_id">
+            <type>integer</type>
+          </tag>
+          <tag name="see" line="620" description="" link="\wow_ah\search_result"/>
+          <tag name="return" line="620" description="An indexed array of search result objects, in the sort order specified." type="array">
+            <type>array</type>
+          </tag>
+        </docblock>
+        <argument line="0" by_reference="false">
+          <name>$name</name>
+          <default></default>
+          <type>string</type>
+        </argument>
+        <argument line="0" by_reference="false">
+          <name>$category</name>
+          <default></default>
+          <type>string</type>
+        </argument>
+        <argument line="0" by_reference="false">
+          <name>$minlevel</name>
+          <default></default>
+          <type>integer</type>
+        </argument>
+        <argument line="0" by_reference="false">
+          <name>$maxlevel</name>
+          <default></default>
+          <type>integer</type>
+        </argument>
+        <argument line="0" by_reference="false">
+          <name>$quality</name>
+          <default></default>
+          <type>integer</type>
+        </argument>
+        <argument line="0" by_reference="false">
+          <name>$sort</name>
+          <default></default>
+          <type>string</type>
+        </argument>
+        <argument line="0" by_reference="false">
+          <name>$reverse</name>
+          <default></default>
+          <type>boolean</type>
+        </argument>
+        <argument line="0" by_reference="false">
+          <name>$limit</name>
+          <default></default>
+          <type>integer</type>
+        </argument>
+        <argument line="0" by_reference="false">
+          <name>$timestamp</name>
+          <default>0</default>
+          <type>string</type>
+        </argument>
+        <argument line="0" by_reference="false">
+          <name>$item_id</name>
+          <default>0</default>
+          <type>integer</type>
+        </argument>
+      </method>
+      <method final="false" abstract="false" static="false" visibility="public" namespace="wow_ah" line="726" package="wow_ah">
+        <name>bid</name>
+        <full_name>\wow_ah\wow_ah::bid()</full_name>
+        <docblock line="726">
+          <description>Bid on an auction</description>
+          <long-description>If the bid amount is equal to or higher than the buyout, it will automatically
+result in buying out the auction.</long-description>
+          <tag name="param" line="726" description="&lt;p&gt;The auction id&lt;/p&gt;" type="integer" variable="$auction_id">
+            <type>integer</type>
+          </tag>
+          <tag name="param" line="726" description="&lt;p&gt;The bid amount in copper&lt;/p&gt;" type="integer" variable="$bid">
+            <type>integer</type>
+          </tag>
+          <tag name="return" line="726" description="True if the bid results in a buyout, false if it is just a high bid" type="boolean">
+            <type>boolean</type>
+          </tag>
+        </docblock>
+        <argument line="0" by_reference="false">
+          <name>$auction_id</name>
+          <default></default>
+          <type>integer</type>
+        </argument>
+        <argument line="0" by_reference="false">
+          <name>$bid</name>
+          <default></default>
+          <type>integer</type>
+        </argument>
+      </method>
+      <method final="false" abstract="false" static="false" visibility="public" namespace="wow_ah" line="782" package="wow_ah">
+        <name>update_inventory</name>
+        <full_name>\wow_ah\wow_ah::update_inventory()</full_name>
+        <docblock line="782">
+          <description>Update the selected character's inventory</description>
+          <long-description>Sends a request to .../auction/create and parses the inventory from the CDATA. Since this link could be clicked
+from anywhere, an optional referer parameter is provided. The inventory contains all items in the bags, bank, and mail.
+The inventory is stored in the API and can be retrieved without an update by using get_inventory().</long-description>
+          <tag name="param" line="782" description="&lt;p&gt;The URL of the referer to use when making the page request&lt;/p&gt;" type="string" variable="$referer">
+            <type>string</type>
+          </tag>
+          <tag name="see" line="782" description="" link="\wow_ah\inventory_item"/>
+          <tag name="return" line="782" description="Returns an array of objects representing items in the inventory" type="array">
+            <type>array</type>
+          </tag>
+        </docblock>
+        <argument line="0" by_reference="false">
+          <name>$referer</name>
+          <default>""</default>
+          <type>string</type>
+        </argument>
+      </method>
+      <method final="false" abstract="false" static="false" visibility="public" namespace="wow_ah" line="844" package="wow_ah">
+        <name>create_auction</name>
+        <full_name>\wow_ah\wow_ah::create_auction()</full_name>
+        <docblock line="844">
+          <description>Create an auction on the ah</description>
+          <long-description>Performs some error checking then submits a number of requests as necessary to list auctions on the auction house</long-description>
+          <tag name="param" line="844" description="&lt;p&gt;item id&lt;/p&gt;" type="integer" variable="$item_id">
+            <type>integer</type>
+          </tag>
+          <tag name="param" line="844" description="&lt;p&gt;auction duration (0 = 12 hours, 1 = 24 hours, 2 = 48 hours)&lt;/p&gt;" type="integer" variable="$duration">
+            <type>integer</type>
+          </tag>
+          <tag name="param" line="844" description="&lt;p&gt;quantity per stack&lt;/p&gt;" type="integer" variable="$quantity">
+            <type>integer</type>
+          </tag>
+          <tag name="param" line="844" description="&lt;p&gt;number of stacks&lt;/p&gt;" type="integer" variable="$stacks">
+            <type>integer</type>
+          </tag>
+          <tag name="param" line="844" description="&lt;p&gt;buyout price in copper&lt;/p&gt;" type="integer" variable="$buyout">
+            <type>integer</type>
+          </tag>
+          <tag name="param" line="844" description="&lt;p&gt;bid price in copper&lt;/p&gt;" type="integer" variable="$bid">
+            <type>integer</type>
+          </tag>
+          <tag name="param" line="844" description="&lt;p&gt;prices given per item (false = per stack)&lt;/p&gt;" type="boolean" variable="$pricePerItem">
+            <type>boolean</type>
+          </tag>
+          <tag name="param" line="844" description="&lt;p&gt;from where to withdraw items (0 = all [bags, bank, and mail], 1 = bags, 2 = bank, 3 = mail)&lt;/p&gt;" type="integer" variable="$sourceType">
+            <type>integer</type>
+          </tag>
+          <tag name="return" line="844" description="True on success" type="boolean">
+            <type>boolean</type>
+          </tag>
+        </docblock>
+        <argument line="0" by_reference="false">
+          <name>$item_id</name>
+          <default></default>
+          <type>integer</type>
+        </argument>
+        <argument line="0" by_reference="false">
+          <name>$duration</name>
+          <default></default>
+          <type>integer</type>
+        </argument>
+        <argument line="0" by_reference="false">
+          <name>$quantity</name>
+          <default></default>
+          <type>integer</type>
+        </argument>
+        <argument line="0" by_reference="false">
+          <name>$stacks</name>
+          <default></default>
+          <type>integer</type>
+        </argument>
+        <argument line="0" by_reference="false">
+          <name>$buyout</name>
+          <default></default>
+          <type>integer</type>
+        </argument>
+        <argument line="0" by_reference="false">
+          <name>$bid</name>
+          <default></default>
+          <type>integer</type>
+        </argument>
+        <argument line="0" by_reference="false">
+          <name>$pricePerItem</name>
+          <default></default>
+          <type>boolean</type>
+        </argument>
+        <argument line="0" by_reference="false">
+          <name>$sourceType</name>
+          <default></default>
+          <type>integer</type>
+        </argument>
+      </method>
+      <method final="false" abstract="false" static="false" visibility="public" namespace="wow_ah" line="982" package="wow_ah">
+        <name>update_auctions</name>
+        <full_name>\wow_ah\wow_ah::update_auctions()</full_name>
+        <docblock line="982">
+          <description>Updates the selected characters auctions (active, sold, and ended)</description>
+          <long-description></long-description>
+          <tag name="return" line="982" description="An auctions object containing arrays of active_auction, sold_auction, ended_auction" type="object">
+            <type>object</type>
+          </tag>
+        </docblock>
+      </method>
+      <method final="false" abstract="false" static="false" visibility="public" namespace="wow_ah" line="1090" package="wow_ah">
+        <name>cancel_auction</name>
+        <full_name>\wow_ah\wow_ah::cancel_auction()</full_name>
+        <docblock line="1090">
+          <description>Cancels an auction</description>
+          <long-description></long-description>
+          <tag name="param" line="1090" description="&lt;p&gt;id of the auction to cancel&lt;/p&gt;" type="integer" variable="$auction_id">
+            <type>integer</type>
+          </tag>
+        </docblock>
+        <argument line="0" by_reference="false">
+          <name>$auction_id</name>
+          <default></default>
+          <type>integer</type>
+        </argument>
+      </method>
+      <method final="false" abstract="false" static="false" visibility="public" namespace="wow_ah" line="1138" package="wow_ah">
+        <name>take_money</name>
+        <full_name>\wow_ah\wow_ah::take_money()</full_name>
+        <docblock line="1138">
+          <description>Takes money from auction profits in the selected character's mailbox</description>
+          <long-description>Takes the money from the passed mail id's. Mail id's can be obtained either from
+get_auctions() or get_mail().</long-description>
+          <tag name="param" line="1138" description="&lt;p&gt;Mail id's, separated by commas&lt;/p&gt;" type="string" variable="$mail_ids">
+            <type>string</type>
+          </tag>
+          <tag name="return" line="1138" description="The amount of money obtained, in copper" type="integer">
+            <type>integer</type>
+          </tag>
+        </docblock>
+        <argument line="0" by_reference="false">
+          <name>$mail_ids</name>
+          <default></default>
+          <type>string</type>
+        </argument>
+      </method>
+      <method final="false" abstract="false" static="false" visibility="public" namespace="wow_ah" line="1190" package="wow_ah">
+        <name>take_all_money</name>
+        <full_name>\wow_ah\wow_ah::take_all_money()</full_name>
+        <docblock line="1190">
+          <description>Helper function to take all available money</description>
+          <long-description>Calls update_auctions(), concatenates mail id's from sold auctions that are claimable
+and passes them to take_money()</long-description>
+          <tag name="return" line="1190" description="The amount of money taken in copper, 0 if there are no auctions" type="integer">
+            <type>integer</type>
+          </tag>
+        </docblock>
+      </method>
+      <method final="false" abstract="false" static="false" visibility="public" namespace="wow_ah" line="1225" package="wow_ah">
+        <name>close</name>
+        <full_name>\wow_ah\wow_ah::close()</full_name>
+        <docblock line="1225">
+          <description>Cleanly shuts down the API</description>
+          <long-description>This method should always be used to shut down the API
+since it will call curl_close() which actually writes the cookies
+to the cookie file. It also flushes the log buffer.</long-description>
+        </docblock>
+      </method>
+      <method final="false" abstract="false" static="false" visibility="private" namespace="wow_ah" line="1233" package="wow_ah">
+        <name>setup_curl</name>
+        <full_name>\wow_ah\wow_ah::setup_curl()</full_name>
+        <docblock line="1233">
+          <description>Sets up some curl parameters during construction</description>
+          <long-description></long-description>
+        </docblock>
+      </method>
+      <method final="false" abstract="false" static="false" visibility="private" namespace="wow_ah" line="1257" package="wow_ah">
+        <name>retrieve_money</name>
+        <full_name>\wow_ah\wow_ah::retrieve_money()</full_name>
+        <docblock line="1257">
+          <description>Retrieves the character's gold amount and the character information</description>
+          <long-description>Calls to this method happen automatically as necessary in the course
+of other transactions, to mimic the website.</long-description>
+          <tag name="param" line="1257" description="&lt;p&gt;The url of the referer to use for HTTP requests&lt;/p&gt;" type="string" variable="$referer">
+            <type>string</type>
+          </tag>
+        </docblock>
+        <argument line="0" by_reference="false">
+          <name>$referer</name>
+          <default></default>
+          <type>string</type>
+        </argument>
+      </method>
+      <method final="false" abstract="false" static="false" visibility="private" namespace="wow_ah" line="1295" package="wow_ah">
+        <name>retrieve_mail</name>
+        <full_name>\wow_ah\wow_ah::retrieve_mail()</full_name>
+        <docblock line="1295">
+          <description>Retrieves the character's mailbox and mail information</description>
+          <long-description>Calls to this method happen automatically as necessary in the course
+of other transactions, to mimic the website.</long-description>
+          <tag name="param" line="1295" description="&lt;p&gt;The url of the referer to use for HTTP requests&lt;/p&gt;" type="string" variable="$referer">
+            <type>string</type>
+          </tag>
+        </docblock>
+        <argument line="0" by_reference="false">
+          <name>$referer</name>
+          <default></default>
+          <type>string</type>
+        </argument>
+      </method>
+      <method final="false" abstract="false" static="false" visibility="private" namespace="wow_ah" line="1338" package="wow_ah">
+        <name>parse_search_results</name>
+        <full_name>\wow_ah\wow_ah::parse_search_results()</full_name>
+        <docblock line="1338">
+          <description>Parses search results from an HTTP response into an array of objects</description>
+          <long-description></long-description>
+          <tag name="param" line="1338" description="&lt;p&gt;An HTTP response body&lt;/p&gt;" type="string" variable="$body">
+            <type>string</type>
+          </tag>
+          <tag name="param" line="1338" description="&lt;p&gt;A timestamp (in mysql format e.g. date(&quot;Y-m-d H:i:s&quot;)) to add to each of the parsed results (useful for data analysis)&lt;/p&gt;" type="string" variable="$timestamp">
+            <type>string</type>
+          </tag>
+          <tag name="see" line="1338" description="" link="\wow_ah\search_result"/>
+          <tag name="return" line="1338" description="An indexed array of search_result objects" type="array">
+            <type>array</type>
+          </tag>
+        </docblock>
+        <argument line="0" by_reference="false">
+          <name>$body</name>
+          <default></default>
+          <type>string</type>
+        </argument>
+        <argument line="0" by_reference="false">
+          <name>$timestamp</name>
+          <default></default>
+          <type>string</type>
+        </argument>
+      </method>
+      <method final="false" abstract="false" static="false" visibility="private" namespace="wow_ah" line="1394" package="wow_ah">
+        <name>parse_ah_index</name>
+        <full_name>\wow_ah\wow_ah::parse_ah_index()</full_name>
+        <docblock line="1394">
+          <description>Parses the character list and xstoken from an HTTP response from .</description>
+          <long-description>.../auction/index</long-description>
+          <tag name="param" line="1394" description="&lt;p&gt;An HTTP response body&lt;/p&gt;" type="string" variable="$response">
+            <type>string</type>
+          </tag>
+        </docblock>
+        <argument line="0" by_reference="false">
+          <name>$response</name>
+          <default></default>
+          <type>string</type>
+        </argument>
+      </method>
+      <method final="false" abstract="false" static="false" visibility="private" namespace="wow_ah" line="1471" package="wow_ah">
+        <name>generate_fp</name>
+        <full_name>\wow_ah\wow_ah::generate_fp()</full_name>
+        <docblock line="1471">
+          <description>Generates a browser fingerprint</description>
+          <long-description>In constructing the API, information must be supplied describing the browser
+the API is to mimic. During login, the website generates a fingerprint for the browser
+using javascript.
+
+&lt;p&gt;The strategy is to use random results for complicated keys, since they're not likely to be reversed,
+but actually hash more regular things like useragent, language, etc.&lt;/p&gt;
+&lt;p&gt;Element 2 is always "24", 10 is always "false", 11 is always "0;false;false"&lt;/p&gt;
+&lt;p&gt;The whole structure is sent as a JSON encoded array&lt;/p&gt;
+
+&lt;p&gt;Each element is a base64 encoded murmur3 hash (x86,32bit) of the following fingerprintjs2 sources (.join()'ed with ';' so everything is a string):&lt;/p&gt;
++ 0: userAgentKey (e.g. "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:48.0) Gecko/20100101 Firefox/48.0")
++ 1: languageKey (e.g. "en-US"),
++ 2: colorDepthKey (e.g. 24)
++ 3: screenResolutionKey (e.g. [1200, 1920],[1200,1920])
++ 4: timezoneOffsetKey (e.g. 420, from (new Date).getTimezoneOffset, which is minutes behind GMT)
++ 5: cpuClassKey (e.g. "navigatorCpuClass: unknown")
++ 6: platformKey (e.g. "navigatorPlatform: Win32")
++ 7: pluginsKey (e.g. "ActiveTouch General Plugin Container::ActiveTouch General Plugin Container Version 105::application/x-atgpc-plugin~gpc;")"
++ 10: getHasLiedLanguages() || getHasLiedResolution() || getHasLiedOs() || getHasLiedBrowser() (send "false")
++ 11: touchSupportKey (e.g. [0, false, false]),
++ 12: fontsKey (e.g. "Aharoni;Algerian;Andalus;Angsana New;AngsanaUPC;Aparajita;Arabic Typesetting;Arial")</long-description>
+          <tag name="param" line="1471" description="&lt;p&gt;A browser_info object&lt;/p&gt;" type="object" variable="$browser_info">
+            <type>object</type>
+          </tag>
+          <tag name="return" line="1471" description="JSON representation of the fingerprint" type="string">
+            <type>string</type>
+          </tag>
+        </docblock>
+        <argument line="0" by_reference="false">
+          <name>$browser_info</name>
+          <default></default>
+          <type>object</type>
+        </argument>
+      </method>
+      <method final="false" abstract="false" static="false" visibility="private" namespace="wow_ah" line="1508" package="wow_ah">
+        <name>make_request</name>
+        <full_name>\wow_ah\wow_ah::make_request()</full_name>
+        <docblock line="1508">
+          <description>Makes an HTTP Request</description>
+          <long-description>Low-level method to actually make HTTP requests using cURL. Keeps track of how many 302 redirects
+to the login page are received so the API can detect when the server thinks it is
+no longer logged in. POST requests are automatically generated as needed if $postdata
+is not false.</long-description>
+          <tag name="param" line="1508" description="&lt;p&gt;The URL to make a request to&lt;/p&gt;" type="string" variable="$url">
+            <type>string</type>
+          </tag>
+          <tag name="param" line="1508" description="&lt;p&gt;An array of additional headers where keys are the header, and values are the header value (i.e. array(&quot;Accept-Language&quot; =&gt; &quot;en&quot;))&lt;/p&gt;" type="array" variable="$header">
+            <type>array</type>
+          </tag>
+          <tag name="param" line="1508" description="&lt;p&gt;The URL of the referer to use or false to leave it out&lt;/p&gt;" type="boolean" variable="$referer">
+            <type>boolean</type>
+          </tag>
+          <tag name="param" line="1508" description="&lt;p&gt;A url-encoded string for data in POST requests&lt;/p&gt;" type="boolean" variable="$postdata">
+            <type>boolean</type>
+          </tag>
+          <tag name="see" line="1508" description="" link="\wow_ah\http_transaction"/>
+          <tag name="return" line="1508" description="An http_transaction object containing request and response information" type="object">
+            <type>object</type>
+          </tag>
+        </docblock>
+        <argument line="0" by_reference="false">
+          <name>$url</name>
+          <default></default>
+          <type>string</type>
+        </argument>
+        <argument line="0" by_reference="false">
+          <name>$header</name>
+          <default>array()</default>
+          <type>array</type>
+        </argument>
+        <argument line="0" by_reference="false">
+          <name>$referer</name>
+          <default>false</default>
+          <type>boolean</type>
+        </argument>
+        <argument line="0" by_reference="false">
+          <name>$postdata</name>
+          <default>false</default>
+          <type>boolean</type>
+        </argument>
+      </method>
+      <method final="false" abstract="false" static="false" visibility="private" namespace="wow_ah" line="1581" package="wow_ah">
+        <name>handle_libxml_errors</name>
+        <full_name>\wow_ah\wow_ah::handle_libxml_errors()</full_name>
+        <docblock line="1581">
+          <description>A custom function to handle errors from libxml by throwing wow_ah\Exceptions on fatal errors and logging the rest</description>
+          <long-description></long-description>
+          <tag name="param" line="1581" description="&lt;p&gt;An array of the errors from libxml&lt;/p&gt;" type="array" variable="$dom_errors">
+            <type>array</type>
+          </tag>
+          <tag name="param" line="1581" description="&lt;p&gt;A description of what is being parsed, to be used in log and error messages&lt;/p&gt;" type="string" variable="$being_parsed">
+            <type>string</type>
+          </tag>
+        </docblock>
+        <argument line="0" by_reference="false">
+          <name>$dom_errors</name>
+          <default></default>
+          <type>array</type>
+        </argument>
+        <argument line="0" by_reference="false">
+          <name>$being_parsed</name>
+          <default></default>
+          <type>string</type>
+        </argument>
+      </method>
+      <method final="false" abstract="false" static="false" visibility="private" namespace="wow_ah" line="1603" package="wow_ah">
+        <name>warn</name>
+        <full_name>\wow_ah\wow_ah::warn()</full_name>
+        <docblock line="1603">
+          <description>Convenience function for warnings</description>
+          <long-description></long-description>
+          <tag name="param" line="1603" description="&lt;p&gt;The text of the warning&lt;/p&gt;" type="string" variable="$entry">
+            <type>string</type>
+          </tag>
+        </docblock>
+        <argument line="0" by_reference="false">
+          <name>$entry</name>
+          <default></default>
+          <type>string</type>
+        </argument>
+      </method>
+      <method final="false" abstract="false" static="false" visibility="private" namespace="wow_ah" line="1618" package="wow_ah">
+        <name>log</name>
+        <full_name>\wow_ah\wow_ah::log()</full_name>
+        <docblock line="1618">
+          <description>Add an entry to the log</description>
+          <long-description>Log entries are buffered and flushed at a minimum specified interval (LOG_API_INTERVAL)
+to avoid a disk write bottleneck when the API is used very fast. The logs only get flushed
+when a new log entry is generated, so it is possible to lose entries if the API shuts down
+unexpectedly. flush_log() can be used to manually flush the buffer, and is automatically
+called by close().</long-description>
+          <tag name="param" line="1618" description="&lt;p&gt;The log entry&lt;/p&gt;" type="string" variable="$entry">
+            <type>string</type>
+          </tag>
+        </docblock>
+        <argument line="0" by_reference="false">
+          <name>$entry</name>
+          <default></default>
+          <type>string</type>
+        </argument>
+      </method>
+      <method final="false" abstract="false" static="false" visibility="public" namespace="wow_ah" line="1633" package="wow_ah">
+        <name>flush_log</name>
+        <full_name>\wow_ah\wow_ah::flush_log()</full_name>
+        <docblock line="1633">
+          <description>Manually flushes the log buffer to disk</description>
+          <long-description></long-description>
+        </docblock>
+      </method>
+    </class>
+    <class final="false" abstract="false" namespace="wow_ah" line="1648" package="wow_ah">
+      <extends>\object_from_array</extends>
+      <name>object_from_array</name>
+      <full_name>\wow_ah\object_from_array</full_name>
+      <docblock line="1648">
+        <description>A wow_ah extension of object_from_array that throws wow_ah\exceptions when errors are encountered</description>
+        <long-description>A constructor receives the input associative array, and checks that each of the class properties exist as a key in the array, and that the values
+match the property values in type. It's probably not efficient, but it simplifies error-checking and makes code more readable
+by having the object documentation implicit in the class definition.
+
+The property $optional specifies property names that are not required.
+
+The property $object specifies property names (array keys) that are object_from_array's, and their class names (array values).
+
+Limitations: can't handle multi-dimensional arrays, or arrays of objects.
+
+Example usage:
+```php
+class foo extends object_from_array {
+		protected static $optional = array("foo1");
+		protected static $objects = array("foo_object" =&gt; "bar");
+
+		public $foo1 = 0;
+		public $foo2 = "";
+		public $foo3 = array(0,0,"");
+		public $foo_object;
+
+		protected function error($message) {
+			throw new Exception($message);
+		}
+}
+
+class bar extends object_from_array {
+		protected static $optional = array("bar2");
+
+		public $bar1 = 0;
+		public $bar2 = "";
+
+		protected function error($message) {
+			throw new Exception($message);
+		}
+}
+
+$foo = new foo(array("foo2" =&gt; "some string",
+						"foo3" =&gt; array(1,3,"another string"),
+						"foo_object" =&gt; array("bar1" =&gt; 5, "bar2" =&gt; "yet another string")
+				  ));
+```</long-description>
+        <tag name="see" line="1648" description="" link="\object_from_array"/>
+        <tag name="package" line="1648" description="wow_ah"/>
+        <tag name="inherited_from" description="\object_from_array" refers="\object_from_array" link="/classes/object_from_array.html"/>
+      </docblock>
+      <property static="true" visibility="protected" namespace="wow_ah" line="74" package="wow_ah">
+        <name>$optional</name>
+        <full_name>\object_from_array::optional</full_name>
+        <default>array()</default>
+        <docblock line="74">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="74" description="&lt;p&gt;An indexed array containing the names of variables which are not required for the object's construction&lt;/p&gt;" type="array" variable="">
+            <type>array</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="true" visibility="protected" namespace="wow_ah" line="76" package="wow_ah">
+        <name>$objects</name>
+        <full_name>\object_from_array::objects</full_name>
+        <default>array()</default>
+        <docblock line="76">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="76" description="&lt;p&gt;An associative array whose keys match property names that are other object_from_array's, and whose values are their respective class names&lt;/p&gt;" type="array" variable="">
+            <type>array</type>
+          </tag>
+        </docblock>
+      </property>
+      <method final="false" abstract="false" static="false" visibility="protected" namespace="wow_ah" line="1654" package="wow_ah">
+        <name>error</name>
+        <full_name>\wow_ah\object_from_array::error()</full_name>
+        <docblock line="1654">
+          <description>Throws a wow_ah\Exception with the \object_from_array error message</description>
+          <long-description></long-description>
+          <tag name="param" line="1654" description="&lt;p&gt;The message string from \object_from_array&lt;/p&gt;" type="string" variable="$message">
+            <type>string</type>
+          </tag>
+          <tag name="inherited_from" description="\object_from_array::error()" refers="\object_from_array::error()" link="/classes/object_from_array.html#method_error"/>
+        </docblock>
+        <argument line="0" by_reference="false">
+          <name>$message</name>
+          <default></default>
+          <type>string</type>
+        </argument>
+      </method>
+      <method final="false" abstract="false" static="false" visibility="public" namespace="wow_ah" line="84" package="wow_ah">
+        <name>__construct</name>
+        <full_name>\object_from_array::__construct()</full_name>
+        <docblock line="84">
+          <description>Creates the object by iterating through every property, searching for an element with a key
+corresponding to the property name, and whose value's type matches the type of the property.</description>
+          <long-description></long-description>
+          <tag name="param" line="84" description="&lt;p&gt;An input array whose keys match the object properties.&lt;/p&gt;" type="Array" variable="$assoc_array">
+            <type>Array</type>
+          </tag>
+        </docblock>
+        <argument line="0" by_reference="false">
+          <name>$assoc_array</name>
+          <default></default>
+          <type>Array</type>
+        </argument>
+        <inherited_from>\object_from_array</inherited_from>
+      </method>
+      <method final="false" abstract="false" static="false" visibility="private" namespace="wow_ah" line="104" package="wow_ah">
+        <name>load_property</name>
+        <full_name>\object_from_array::load_property()</full_name>
+        <docblock line="104">
+          <description>Error checks the $input against the class property called $name.</description>
+          <long-description></long-description>
+          <tag name="param" line="104" description="&lt;p&gt;The property name.&lt;/p&gt;" type="String" variable="$name">
+            <type>String</type>
+          </tag>
+          <tag name="param" line="104" description="&lt;p&gt;The input to be checked and loaded.&lt;/p&gt;" type="Mixed" variable="$input">
+            <type>Mixed</type>
+          </tag>
+        </docblock>
+        <argument line="0" by_reference="false">
+          <name>$name</name>
+          <default></default>
+          <type>String</type>
+        </argument>
+        <argument line="0" by_reference="false">
+          <name>$input</name>
+          <default></default>
+          <type>Mixed</type>
+        </argument>
+        <inherited_from>\object_from_array</inherited_from>
+      </method>
+      <method final="false" abstract="true" static="false" visibility="protected" namespace="wow_ah" line="146" package="wow_ah">
+        <name>error</name>
+        <full_name>\object_from_array::error()</full_name>
+        <docblock line="146">
+          <description>Error handling function that is passed an error message.</description>
+          <long-description></long-description>
+          <tag name="param" line="146" description="&lt;p&gt;The error message generated by the constructor.&lt;/p&gt;" type="String" variable="$message">
+            <type>String</type>
+          </tag>
+        </docblock>
+        <argument line="0" by_reference="false">
+          <name>$message</name>
+          <default></default>
+          <type>String</type>
+        </argument>
+        <inherited_from>\object_from_array</inherited_from>
+      </method>
+    </class>
+    <class final="false" abstract="false" namespace="wow_ah" line="1664" package="wow_ah">
+      <extends>\wow_ah\object_from_array</extends>
+      <name>http_transaction</name>
+      <full_name>\wow_ah\http_transaction</full_name>
+      <docblock line="1664">
+        <description>The result of an HTTP, used by wow_ah's make_request()</description>
+        <long-description>The result of an HTTP, used by wow_ah's make_request()</long-description>
+        <tag name="package" line="1664" description="wow_ah"/>
+        <tag name="inherited_from" description="\wow_ah\object_from_array" refers="\wow_ah\object_from_array" link="/classes/wow_ah.object_from_array.html"/>
+      </docblock>
+      <property static="false" visibility="public" namespace="wow_ah" line="1666" package="wow_ah">
+        <name>$header</name>
+        <full_name>\wow_ah\http_transaction::header</full_name>
+        <default>""</default>
+        <docblock line="1666">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1666" description="&lt;p&gt;The HTTP response header&lt;/p&gt;" type="string" variable="">
+            <type>string</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1668" package="wow_ah">
+        <name>$body</name>
+        <full_name>\wow_ah\http_transaction::body</full_name>
+        <default>""</default>
+        <docblock line="1668">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1668" description="&lt;p&gt;The HTTP response body&lt;/p&gt;" type="string" variable="">
+            <type>string</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1670" package="wow_ah">
+        <name>$request_header</name>
+        <full_name>\wow_ah\http_transaction::request_header</full_name>
+        <default>""</default>
+        <docblock line="1670">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1670" description="&lt;p&gt;The final HTTP request header send by cURL&lt;/p&gt;" type="string" variable="">
+            <type>string</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1672" package="wow_ah">
+        <name>$http_code</name>
+        <full_name>\wow_ah\http_transaction::http_code</full_name>
+        <default>0</default>
+        <docblock line="1672">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1672" description="&lt;p&gt;The HTTP code returned by the final request by cURL&lt;/p&gt;" type="integer" variable="">
+            <type>integer</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1674" package="wow_ah">
+        <name>$last_url</name>
+        <full_name>\wow_ah\http_transaction::last_url</full_name>
+        <default>""</default>
+        <docblock line="1674">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1674" description="&lt;p&gt;The last URL requested by cURL (in cases of redirects)&lt;/p&gt;" type="string" variable="">
+            <type>string</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1676" package="wow_ah">
+        <name>$postdata</name>
+        <full_name>\wow_ah\http_transaction::postdata</full_name>
+        <default>""</default>
+        <docblock line="1676">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1676" description="&lt;p&gt;The POST request data, if sent&lt;/p&gt;" type="string" variable="">
+            <type>string</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="true" visibility="protected" namespace="wow_ah" line="74" package="wow_ah">
+        <name>$optional</name>
+        <full_name>\object_from_array::optional</full_name>
+        <default>array()</default>
+        <docblock line="74">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="74" description="&lt;p&gt;An indexed array containing the names of variables which are not required for the object's construction&lt;/p&gt;" type="array" variable="">
+            <type>array</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="true" visibility="protected" namespace="wow_ah" line="76" package="wow_ah">
+        <name>$objects</name>
+        <full_name>\object_from_array::objects</full_name>
+        <default>array()</default>
+        <docblock line="76">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="76" description="&lt;p&gt;An associative array whose keys match property names that are other object_from_array's, and whose values are their respective class names&lt;/p&gt;" type="array" variable="">
+            <type>array</type>
+          </tag>
+        </docblock>
+      </property>
+      <method final="false" abstract="false" static="false" visibility="public" namespace="wow_ah" line="1683" package="wow_ah">
+        <name>generate_log_string</name>
+        <full_name>\wow_ah\http_transaction::generate_log_string()</full_name>
+        <docblock line="1683">
+          <description>Generates a readable string that can be added to the log file representing this transaction</description>
+          <long-description></long-description>
+          <tag name="return" line="1683" description="A string containing the request header, response header and body" type="string">
+            <type>string</type>
+          </tag>
+        </docblock>
+      </method>
+      <method final="false" abstract="true" static="false" visibility="protected" namespace="wow_ah" line="146" package="wow_ah">
+        <name>error</name>
+        <full_name>\object_from_array::error()</full_name>
+        <docblock line="146">
+          <description>Error handling function that is passed an error message.</description>
+          <long-description></long-description>
+          <tag name="param" line="146" description="&lt;p&gt;The error message generated by the constructor.&lt;/p&gt;" type="String" variable="$message">
+            <type>String</type>
+          </tag>
+        </docblock>
+        <argument line="0" by_reference="false">
+          <name>$message</name>
+          <default></default>
+          <type>String</type>
+        </argument>
+        <inherited_from>\object_from_array</inherited_from>
+      </method>
+      <method final="false" abstract="false" static="false" visibility="public" namespace="wow_ah" line="84" package="wow_ah">
+        <name>__construct</name>
+        <full_name>\object_from_array::__construct()</full_name>
+        <docblock line="84">
+          <description>Creates the object by iterating through every property, searching for an element with a key
+corresponding to the property name, and whose value's type matches the type of the property.</description>
+          <long-description></long-description>
+          <tag name="param" line="84" description="&lt;p&gt;An input array whose keys match the object properties.&lt;/p&gt;" type="Array" variable="$assoc_array">
+            <type>Array</type>
+          </tag>
+        </docblock>
+        <argument line="0" by_reference="false">
+          <name>$assoc_array</name>
+          <default></default>
+          <type>Array</type>
+        </argument>
+        <inherited_from>\object_from_array</inherited_from>
+      </method>
+      <method final="false" abstract="false" static="false" visibility="private" namespace="wow_ah" line="104" package="wow_ah">
+        <name>load_property</name>
+        <full_name>\object_from_array::load_property()</full_name>
+        <docblock line="104">
+          <description>Error checks the $input against the class property called $name.</description>
+          <long-description></long-description>
+          <tag name="param" line="104" description="&lt;p&gt;The property name.&lt;/p&gt;" type="String" variable="$name">
+            <type>String</type>
+          </tag>
+          <tag name="param" line="104" description="&lt;p&gt;The input to be checked and loaded.&lt;/p&gt;" type="Mixed" variable="$input">
+            <type>Mixed</type>
+          </tag>
+        </docblock>
+        <argument line="0" by_reference="false">
+          <name>$name</name>
+          <default></default>
+          <type>String</type>
+        </argument>
+        <argument line="0" by_reference="false">
+          <name>$input</name>
+          <default></default>
+          <type>Mixed</type>
+        </argument>
+        <inherited_from>\object_from_array</inherited_from>
+      </method>
+    </class>
+    <class final="false" abstract="false" namespace="wow_ah" line="1704" package="wow_ah">
+      <extends>\wow_ah\object_from_array</extends>
+      <name>search_result</name>
+      <full_name>\wow_ah\search_result</full_name>
+      <docblock line="1704">
+        <description>A single auction from a search</description>
+        <long-description>A single auction from a search</long-description>
+        <tag name="package" line="1704" description="wow_ah"/>
+        <tag name="inherited_from" description="\wow_ah\object_from_array" refers="\wow_ah\object_from_array" link="/classes/wow_ah.object_from_array.html"/>
+      </docblock>
+      <property static="false" visibility="public" namespace="wow_ah" line="1706" package="wow_ah">
+        <name>$id</name>
+        <full_name>\wow_ah\search_result::id</full_name>
+        <default>0</default>
+        <docblock line="1706">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1706" description="&lt;p&gt;The auction id&lt;/p&gt;" type="integer" variable="">
+            <type>integer</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1708" package="wow_ah">
+        <name>$item_id</name>
+        <full_name>\wow_ah\search_result::item_id</full_name>
+        <default>0</default>
+        <docblock line="1708">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1708" description="&lt;p&gt;The item id&lt;/p&gt;" type="integer" variable="">
+            <type>integer</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1710" package="wow_ah">
+        <name>$item_name</name>
+        <full_name>\wow_ah\search_result::item_name</full_name>
+        <default>""</default>
+        <docblock line="1710">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1710" description="&lt;p&gt;The item name&lt;/p&gt;" type="string" variable="">
+            <type>string</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1712" package="wow_ah">
+        <name>$seller</name>
+        <full_name>\wow_ah\search_result::seller</full_name>
+        <default>""</default>
+        <docblock line="1712">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1712" description="&lt;p&gt;The seller's name&lt;/p&gt;" type="string" variable="">
+            <type>string</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1714" package="wow_ah">
+        <name>$quantity</name>
+        <full_name>\wow_ah\search_result::quantity</full_name>
+        <default>0</default>
+        <docblock line="1714">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1714" description="&lt;p&gt;The quantity of the item&lt;/p&gt;" type="integer" variable="">
+            <type>integer</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1716" package="wow_ah">
+        <name>$time</name>
+        <full_name>\wow_ah\search_result::time</full_name>
+        <default>""</default>
+        <docblock line="1716">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1716" description="&lt;p&gt;The time remaining in the auction (&quot;Short&quot;, &quot;Medium&quot;, &quot;Long&quot;, &quot;Very long&quot;)&lt;/p&gt;" type="string" variable="">
+            <type>string</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1718" package="wow_ah">
+        <name>$bid</name>
+        <full_name>\wow_ah\search_result::bid</full_name>
+        <default>0</default>
+        <docblock line="1718">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1718" description="&lt;p&gt;The minimum bid, in copper&lt;/p&gt;" type="integer" variable="">
+            <type>integer</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1720" package="wow_ah">
+        <name>$unitBid</name>
+        <full_name>\wow_ah\search_result::unitBid</full_name>
+        <default>0</default>
+        <docblock line="1720">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1720" description="&lt;p&gt;The minimum bid per unit, in copper (calculated by API)&lt;/p&gt;" type="integer" variable="">
+            <type>integer</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1722" package="wow_ah">
+        <name>$buyout</name>
+        <full_name>\wow_ah\search_result::buyout</full_name>
+        <default>0</default>
+        <docblock line="1722">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1722" description="&lt;p&gt;The buyout, in copper&lt;/p&gt;" type="integer" variable="">
+            <type>integer</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1724" package="wow_ah">
+        <name>$unitBuyout</name>
+        <full_name>\wow_ah\search_result::unitBuyout</full_name>
+        <default>0</default>
+        <docblock line="1724">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1724" description="&lt;p&gt;The buyout per unit, in copper (calculated by API)&lt;/p&gt;" type="integer" variable="">
+            <type>integer</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1726" package="wow_ah">
+        <name>$timestamp</name>
+        <full_name>\wow_ah\search_result::timestamp</full_name>
+        <default>""</default>
+        <docblock line="1726">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1726" description="&lt;p&gt;Timestamp of the search result, specified by the user, in mysql format&lt;/p&gt;" type="string" variable="">
+            <type>string</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="true" visibility="protected" namespace="wow_ah" line="74" package="wow_ah">
+        <name>$optional</name>
+        <full_name>\object_from_array::optional</full_name>
+        <default>array()</default>
+        <docblock line="74">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="74" description="&lt;p&gt;An indexed array containing the names of variables which are not required for the object's construction&lt;/p&gt;" type="array" variable="">
+            <type>array</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="true" visibility="protected" namespace="wow_ah" line="76" package="wow_ah">
+        <name>$objects</name>
+        <full_name>\object_from_array::objects</full_name>
+        <default>array()</default>
+        <docblock line="76">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="76" description="&lt;p&gt;An associative array whose keys match property names that are other object_from_array's, and whose values are their respective class names&lt;/p&gt;" type="array" variable="">
+            <type>array</type>
+          </tag>
+        </docblock>
+      </property>
+      <method final="false" abstract="true" static="false" visibility="protected" namespace="wow_ah" line="146" package="wow_ah">
+        <name>error</name>
+        <full_name>\object_from_array::error()</full_name>
+        <docblock line="146">
+          <description>Error handling function that is passed an error message.</description>
+          <long-description></long-description>
+          <tag name="param" line="146" description="&lt;p&gt;The error message generated by the constructor.&lt;/p&gt;" type="String" variable="$message">
+            <type>String</type>
+          </tag>
+        </docblock>
+        <argument line="0" by_reference="false">
+          <name>$message</name>
+          <default></default>
+          <type>String</type>
+        </argument>
+        <inherited_from>\object_from_array</inherited_from>
+      </method>
+      <method final="false" abstract="false" static="false" visibility="public" namespace="wow_ah" line="84" package="wow_ah">
+        <name>__construct</name>
+        <full_name>\object_from_array::__construct()</full_name>
+        <docblock line="84">
+          <description>Creates the object by iterating through every property, searching for an element with a key
+corresponding to the property name, and whose value's type matches the type of the property.</description>
+          <long-description></long-description>
+          <tag name="param" line="84" description="&lt;p&gt;An input array whose keys match the object properties.&lt;/p&gt;" type="Array" variable="$assoc_array">
+            <type>Array</type>
+          </tag>
+        </docblock>
+        <argument line="0" by_reference="false">
+          <name>$assoc_array</name>
+          <default></default>
+          <type>Array</type>
+        </argument>
+        <inherited_from>\object_from_array</inherited_from>
+      </method>
+      <method final="false" abstract="false" static="false" visibility="private" namespace="wow_ah" line="104" package="wow_ah">
+        <name>load_property</name>
+        <full_name>\object_from_array::load_property()</full_name>
+        <docblock line="104">
+          <description>Error checks the $input against the class property called $name.</description>
+          <long-description></long-description>
+          <tag name="param" line="104" description="&lt;p&gt;The property name.&lt;/p&gt;" type="String" variable="$name">
+            <type>String</type>
+          </tag>
+          <tag name="param" line="104" description="&lt;p&gt;The input to be checked and loaded.&lt;/p&gt;" type="Mixed" variable="$input">
+            <type>Mixed</type>
+          </tag>
+        </docblock>
+        <argument line="0" by_reference="false">
+          <name>$name</name>
+          <default></default>
+          <type>String</type>
+        </argument>
+        <argument line="0" by_reference="false">
+          <name>$input</name>
+          <default></default>
+          <type>Mixed</type>
+        </argument>
+        <inherited_from>\object_from_array</inherited_from>
+      </method>
+    </class>
+    <class final="false" abstract="false" namespace="wow_ah" line="1736" package="wow_ah">
+      <extends>\wow_ah\object_from_array</extends>
+      <name>browser_info</name>
+      <full_name>\wow_ah\browser_info</full_name>
+      <docblock line="1736">
+        <description>Represents the browser the API will mimic.</description>
+        <long-description>Represents the browser the API will mimic.</long-description>
+        <tag name="see" line="1736" description="" link="\wow_ah\wow_ah::generate_fp()"/>
+        <tag name="package" line="1736" description="wow_ah"/>
+        <tag name="inherited_from" description="\wow_ah\object_from_array" refers="\wow_ah\object_from_array" link="/classes/wow_ah.object_from_array.html"/>
+      </docblock>
+      <property static="true" visibility="protected" namespace="wow_ah" line="1738" package="wow_ah">
+        <name>$optional</name>
+        <full_name>\wow_ah\browser_info::optional</full_name>
+        <default>array("headers")</default>
+        <docblock line="1738">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1738" description="&lt;p&gt;The user need not specify additional browser headers&lt;/p&gt;" type="array" variable="">
+            <type>array</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1741" package="wow_ah">
+        <name>$useragent</name>
+        <full_name>\wow_ah\browser_info::useragent</full_name>
+        <default>""</default>
+        <docblock line="1741">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1741" description="&lt;p&gt;Sent as the User-Agent header&lt;/p&gt;" type="string" variable="">
+            <type>string</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1743" package="wow_ah">
+        <name>$language</name>
+        <full_name>\wow_ah\browser_info::language</full_name>
+        <default>""</default>
+        <docblock line="1743">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1743" description="&lt;p&gt;A language string used for fingerprint generation (e.g. &quot;en-US&quot; )&lt;/p&gt;" type="string" variable="">
+            <type>string</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1745" package="wow_ah">
+        <name>$resolution</name>
+        <full_name>\wow_ah\browser_info::resolution</full_name>
+        <default>array(0, 0)</default>
+        <docblock line="1745">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1745" description="&lt;p&gt;The browser resolution used for fingerprint generation (e.g. array(1080, 1920))&lt;/p&gt;" type="array" variable="">
+            <type>array</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1747" package="wow_ah">
+        <name>$timezoneoffset</name>
+        <full_name>\wow_ah\browser_info::timezoneoffset</full_name>
+        <default>0</default>
+        <docblock line="1747">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1747" description="&lt;p&gt;The timezone offset (e.g. 420, from javscript's (new Date).getTimezoneOffset, which is minutes behind GMT)&lt;/p&gt;" type="integer" variable="">
+            <type>integer</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1749" package="wow_ah">
+        <name>$randomseed</name>
+        <full_name>\wow_ah\browser_info::randomseed</full_name>
+        <default>""</default>
+        <docblock line="1749">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1749" description="&lt;p&gt;A random seed used to generate certain values in the fingerprint&lt;/p&gt;" type="string" variable="">
+            <type>string</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1751" package="wow_ah">
+        <name>$headers</name>
+        <full_name>\wow_ah\browser_info::headers</full_name>
+        <default>""</default>
+        <docblock line="1751">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1751" description="&lt;p&gt;Additional headers sent by cURL as &lt;code&gt;Header&lt;/code&gt;:&lt;code&gt;value&lt;/code&gt;, separated by \n (e.g. &quot;Accept-Language: en-US,en;q=0.5\nDNT: 1&quot;)&lt;/p&gt;" type="string" variable="">
+            <type>string</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="true" visibility="protected" namespace="wow_ah" line="74" package="wow_ah">
+        <name>$optional</name>
+        <full_name>\object_from_array::optional</full_name>
+        <default>array()</default>
+        <docblock line="74">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="74" description="&lt;p&gt;An indexed array containing the names of variables which are not required for the object's construction&lt;/p&gt;" type="array" variable="">
+            <type>array</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="true" visibility="protected" namespace="wow_ah" line="76" package="wow_ah">
+        <name>$objects</name>
+        <full_name>\object_from_array::objects</full_name>
+        <default>array()</default>
+        <docblock line="76">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="76" description="&lt;p&gt;An associative array whose keys match property names that are other object_from_array's, and whose values are their respective class names&lt;/p&gt;" type="array" variable="">
+            <type>array</type>
+          </tag>
+        </docblock>
+      </property>
+      <method final="false" abstract="true" static="false" visibility="protected" namespace="wow_ah" line="146" package="wow_ah">
+        <name>error</name>
+        <full_name>\object_from_array::error()</full_name>
+        <docblock line="146">
+          <description>Error handling function that is passed an error message.</description>
+          <long-description></long-description>
+          <tag name="param" line="146" description="&lt;p&gt;The error message generated by the constructor.&lt;/p&gt;" type="String" variable="$message">
+            <type>String</type>
+          </tag>
+        </docblock>
+        <argument line="0" by_reference="false">
+          <name>$message</name>
+          <default></default>
+          <type>String</type>
+        </argument>
+        <inherited_from>\object_from_array</inherited_from>
+      </method>
+      <method final="false" abstract="false" static="false" visibility="public" namespace="wow_ah" line="84" package="wow_ah">
+        <name>__construct</name>
+        <full_name>\object_from_array::__construct()</full_name>
+        <docblock line="84">
+          <description>Creates the object by iterating through every property, searching for an element with a key
+corresponding to the property name, and whose value's type matches the type of the property.</description>
+          <long-description></long-description>
+          <tag name="param" line="84" description="&lt;p&gt;An input array whose keys match the object properties.&lt;/p&gt;" type="Array" variable="$assoc_array">
+            <type>Array</type>
+          </tag>
+        </docblock>
+        <argument line="0" by_reference="false">
+          <name>$assoc_array</name>
+          <default></default>
+          <type>Array</type>
+        </argument>
+        <inherited_from>\object_from_array</inherited_from>
+      </method>
+      <method final="false" abstract="false" static="false" visibility="private" namespace="wow_ah" line="104" package="wow_ah">
+        <name>load_property</name>
+        <full_name>\object_from_array::load_property()</full_name>
+        <docblock line="104">
+          <description>Error checks the $input against the class property called $name.</description>
+          <long-description></long-description>
+          <tag name="param" line="104" description="&lt;p&gt;The property name.&lt;/p&gt;" type="String" variable="$name">
+            <type>String</type>
+          </tag>
+          <tag name="param" line="104" description="&lt;p&gt;The input to be checked and loaded.&lt;/p&gt;" type="Mixed" variable="$input">
+            <type>Mixed</type>
+          </tag>
+        </docblock>
+        <argument line="0" by_reference="false">
+          <name>$name</name>
+          <default></default>
+          <type>String</type>
+        </argument>
+        <argument line="0" by_reference="false">
+          <name>$input</name>
+          <default></default>
+          <type>Mixed</type>
+        </argument>
+        <inherited_from>\object_from_array</inherited_from>
+      </method>
+    </class>
+    <class final="false" abstract="false" namespace="wow_ah" line="1757" package="wow_ah">
+      <extends>\wow_ah\object_from_array</extends>
+      <name>inventory_item</name>
+      <full_name>\wow_ah\inventory_item</full_name>
+      <docblock line="1757">
+        <description>An item in the character's inventory</description>
+        <long-description>A constructor receives the input associative array, and checks that each of the class properties exist as a key in the array, and that the values
+match the property values in type. It's probably not efficient, but it simplifies error-checking and makes code more readable
+by having the object documentation implicit in the class definition.
+
+The property $optional specifies property names that are not required.
+
+The property $object specifies property names (array keys) that are object_from_array's, and their class names (array values).
+
+Limitations: can't handle multi-dimensional arrays, or arrays of objects.
+
+Example usage:
+```php
+class foo extends object_from_array {
+		protected static $optional = array("foo1");
+		protected static $objects = array("foo_object" =&gt; "bar");
+
+		public $foo1 = 0;
+		public $foo2 = "";
+		public $foo3 = array(0,0,"");
+		public $foo_object;
+
+		protected function error($message) {
+			throw new Exception($message);
+		}
+}
+
+class bar extends object_from_array {
+		protected static $optional = array("bar2");
+
+		public $bar1 = 0;
+		public $bar2 = "";
+
+		protected function error($message) {
+			throw new Exception($message);
+		}
+}
+
+$foo = new foo(array("foo2" =&gt; "some string",
+						"foo3" =&gt; array(1,3,"another string"),
+						"foo_object" =&gt; array("bar1" =&gt; 5, "bar2" =&gt; "yet another string")
+				  ));
+```</long-description>
+        <tag name="package" line="1757" description="wow_ah"/>
+        <tag name="inherited_from" description="\wow_ah\object_from_array" refers="\wow_ah\object_from_array" link="/classes/wow_ah.object_from_array.html"/>
+      </docblock>
+      <property static="false" visibility="public" namespace="wow_ah" line="1759" package="wow_ah">
+        <name>$id</name>
+        <full_name>\wow_ah\inventory_item::id</full_name>
+        <default>0</default>
+        <docblock line="1759">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1759" description="&lt;p&gt;The item id&lt;/p&gt;" type="integer" variable="">
+            <type>integer</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1761" package="wow_ah">
+        <name>$name</name>
+        <full_name>\wow_ah\inventory_item::name</full_name>
+        <default>""</default>
+        <docblock line="1761">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1761" description="&lt;p&gt;The item name&lt;/p&gt;" type="string" variable="">
+            <type>string</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1763" package="wow_ah">
+        <name>$quality</name>
+        <full_name>\wow_ah\inventory_item::quality</full_name>
+        <default>0</default>
+        <docblock line="1763">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1763" description="&lt;p&gt;The item quality (0 = Poor, 1 = Uncommon, 2 = Common, 3 = Rare, 4 = Epic)&lt;/p&gt;" type="integer" variable="">
+            <type>integer</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1765" package="wow_ah">
+        <name>$maxQty</name>
+        <full_name>\wow_ah\inventory_item::maxQty</full_name>
+        <default>0</default>
+        <docblock line="1765">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1765" description="&lt;p&gt;The max quantity per stack&lt;/p&gt;" type="integer" variable="">
+            <type>integer</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1767" package="wow_ah">
+        <name>$q0</name>
+        <full_name>\wow_ah\inventory_item::q0</full_name>
+        <default>0</default>
+        <docblock line="1767">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1767" description="&lt;p&gt;The total number in the inventory&lt;/p&gt;" type="integer" variable="">
+            <type>integer</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1769" package="wow_ah">
+        <name>$q1</name>
+        <full_name>\wow_ah\inventory_item::q1</full_name>
+        <default>0</default>
+        <docblock line="1769">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1769" description="&lt;p&gt;The total number in the character's bags&lt;/p&gt;" type="integer" variable="">
+            <type>integer</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1771" package="wow_ah">
+        <name>$q2</name>
+        <full_name>\wow_ah\inventory_item::q2</full_name>
+        <default>0</default>
+        <docblock line="1771">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1771" description="&lt;p&gt;The total number in the character's bank&lt;/p&gt;" type="integer" variable="">
+            <type>integer</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1773" package="wow_ah">
+        <name>$q3</name>
+        <full_name>\wow_ah\inventory_item::q3</full_name>
+        <default>0</default>
+        <docblock line="1773">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1773" description="&lt;p&gt;The total number in the character's mail&lt;/p&gt;" type="integer" variable="">
+            <type>integer</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="true" visibility="protected" namespace="wow_ah" line="74" package="wow_ah">
+        <name>$optional</name>
+        <full_name>\object_from_array::optional</full_name>
+        <default>array()</default>
+        <docblock line="74">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="74" description="&lt;p&gt;An indexed array containing the names of variables which are not required for the object's construction&lt;/p&gt;" type="array" variable="">
+            <type>array</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="true" visibility="protected" namespace="wow_ah" line="76" package="wow_ah">
+        <name>$objects</name>
+        <full_name>\object_from_array::objects</full_name>
+        <default>array()</default>
+        <docblock line="76">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="76" description="&lt;p&gt;An associative array whose keys match property names that are other object_from_array's, and whose values are their respective class names&lt;/p&gt;" type="array" variable="">
+            <type>array</type>
+          </tag>
+        </docblock>
+      </property>
+      <method final="false" abstract="true" static="false" visibility="protected" namespace="wow_ah" line="146" package="wow_ah">
+        <name>error</name>
+        <full_name>\object_from_array::error()</full_name>
+        <docblock line="146">
+          <description>Error handling function that is passed an error message.</description>
+          <long-description></long-description>
+          <tag name="param" line="146" description="&lt;p&gt;The error message generated by the constructor.&lt;/p&gt;" type="String" variable="$message">
+            <type>String</type>
+          </tag>
+        </docblock>
+        <argument line="0" by_reference="false">
+          <name>$message</name>
+          <default></default>
+          <type>String</type>
+        </argument>
+        <inherited_from>\object_from_array</inherited_from>
+      </method>
+      <method final="false" abstract="false" static="false" visibility="public" namespace="wow_ah" line="84" package="wow_ah">
+        <name>__construct</name>
+        <full_name>\object_from_array::__construct()</full_name>
+        <docblock line="84">
+          <description>Creates the object by iterating through every property, searching for an element with a key
+corresponding to the property name, and whose value's type matches the type of the property.</description>
+          <long-description></long-description>
+          <tag name="param" line="84" description="&lt;p&gt;An input array whose keys match the object properties.&lt;/p&gt;" type="Array" variable="$assoc_array">
+            <type>Array</type>
+          </tag>
+        </docblock>
+        <argument line="0" by_reference="false">
+          <name>$assoc_array</name>
+          <default></default>
+          <type>Array</type>
+        </argument>
+        <inherited_from>\object_from_array</inherited_from>
+      </method>
+      <method final="false" abstract="false" static="false" visibility="private" namespace="wow_ah" line="104" package="wow_ah">
+        <name>load_property</name>
+        <full_name>\object_from_array::load_property()</full_name>
+        <docblock line="104">
+          <description>Error checks the $input against the class property called $name.</description>
+          <long-description></long-description>
+          <tag name="param" line="104" description="&lt;p&gt;The property name.&lt;/p&gt;" type="String" variable="$name">
+            <type>String</type>
+          </tag>
+          <tag name="param" line="104" description="&lt;p&gt;The input to be checked and loaded.&lt;/p&gt;" type="Mixed" variable="$input">
+            <type>Mixed</type>
+          </tag>
+        </docblock>
+        <argument line="0" by_reference="false">
+          <name>$name</name>
+          <default></default>
+          <type>String</type>
+        </argument>
+        <argument line="0" by_reference="false">
+          <name>$input</name>
+          <default></default>
+          <type>Mixed</type>
+        </argument>
+        <inherited_from>\object_from_array</inherited_from>
+      </method>
+    </class>
+    <class final="false" abstract="false" namespace="wow_ah" line="1779" package="wow_ah">
+      <extends/>
+      <name>auctions</name>
+      <full_name>\wow_ah\auctions</full_name>
+      <docblock line="1779">
+        <description>Container for all of the selected characters auctions</description>
+        <long-description></long-description>
+        <tag name="package" line="1779" description="wow_ah"/>
+      </docblock>
+      <property static="false" visibility="public" namespace="wow_ah" line="1781" package="wow_ah">
+        <name>$active</name>
+        <full_name>\wow_ah\auctions::active</full_name>
+        <default>array()</default>
+        <docblock line="1781">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1781" description="&lt;p&gt;An indexed array of active_auction objects&lt;/p&gt;" type="array" variable="">
+            <type>array</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1783" package="wow_ah">
+        <name>$sold</name>
+        <full_name>\wow_ah\auctions::sold</full_name>
+        <default>array()</default>
+        <docblock line="1783">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1783" description="&lt;p&gt;An indexed array of sold_auction objects&lt;/p&gt;" type="array" variable="">
+            <type>array</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1785" package="wow_ah">
+        <name>$ended</name>
+        <full_name>\wow_ah\auctions::ended</full_name>
+        <default>array()</default>
+        <docblock line="1785">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1785" description="&lt;p&gt;An indexed array of ended_auction objects&lt;/p&gt;" type="array" variable="">
+            <type>array</type>
+          </tag>
+        </docblock>
+      </property>
+    </class>
+    <class final="false" abstract="false" namespace="wow_ah" line="1793" package="wow_ah">
+      <extends>\wow_ah\object_from_array</extends>
+      <name>active_auction</name>
+      <full_name>\wow_ah\active_auction</full_name>
+      <docblock line="1793">
+        <description>An active auction listed by the selected character</description>
+        <long-description>An active auction listed by the selected character</long-description>
+        <tag name="package" line="1793" description="wow_ah"/>
+        <tag name="inherited_from" description="\wow_ah\object_from_array" refers="\wow_ah\object_from_array" link="/classes/wow_ah.object_from_array.html"/>
+      </docblock>
+      <property static="false" visibility="public" namespace="wow_ah" line="1795" package="wow_ah">
+        <name>$id</name>
+        <full_name>\wow_ah\active_auction::id</full_name>
+        <default>0</default>
+        <docblock line="1795">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1795" description="&lt;p&gt;The auction id&lt;/p&gt;" type="integer" variable="">
+            <type>integer</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1797" package="wow_ah">
+        <name>$item_id</name>
+        <full_name>\wow_ah\active_auction::item_id</full_name>
+        <default>0</default>
+        <docblock line="1797">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1797" description="&lt;p&gt;The item id&lt;/p&gt;" type="integer" variable="">
+            <type>integer</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1799" package="wow_ah">
+        <name>$item_name</name>
+        <full_name>\wow_ah\active_auction::item_name</full_name>
+        <default>""</default>
+        <docblock line="1799">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1799" description="&lt;p&gt;The item name&lt;/p&gt;" type="string" variable="">
+            <type>string</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1801" package="wow_ah">
+        <name>$quantity</name>
+        <full_name>\wow_ah\active_auction::quantity</full_name>
+        <default>0</default>
+        <docblock line="1801">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1801" description="&lt;p&gt;The quantity of the item&lt;/p&gt;" type="integer" variable="">
+            <type>integer</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1803" package="wow_ah">
+        <name>$time</name>
+        <full_name>\wow_ah\active_auction::time</full_name>
+        <default>""</default>
+        <docblock line="1803">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1803" description="&lt;p&gt;The time remaining in the auction (&quot;Short&quot;, &quot;Medium&quot;, &quot;Long&quot;, &quot;Very long&quot;)&lt;/p&gt;" type="string" variable="">
+            <type>string</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1805" package="wow_ah">
+        <name>$high_bidder</name>
+        <full_name>\wow_ah\active_auction::high_bidder</full_name>
+        <default>""</default>
+        <docblock line="1805">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1805" description="&lt;p&gt;The high bidder of the auction&lt;/p&gt;" type="string" variable="">
+            <type>string</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1807" package="wow_ah">
+        <name>$bid</name>
+        <full_name>\wow_ah\active_auction::bid</full_name>
+        <default>0</default>
+        <docblock line="1807">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1807" description="&lt;p&gt;The minimum bid, in copper&lt;/p&gt;" type="integer" variable="">
+            <type>integer</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1809" package="wow_ah">
+        <name>$unitBid</name>
+        <full_name>\wow_ah\active_auction::unitBid</full_name>
+        <default>0</default>
+        <docblock line="1809">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1809" description="&lt;p&gt;The minimum bid per unit, in copper (calculated by API)&lt;/p&gt;" type="integer" variable="">
+            <type>integer</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1811" package="wow_ah">
+        <name>$buyout</name>
+        <full_name>\wow_ah\active_auction::buyout</full_name>
+        <default>0</default>
+        <docblock line="1811">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1811" description="&lt;p&gt;The buyout, in copper&lt;/p&gt;" type="integer" variable="">
+            <type>integer</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1813" package="wow_ah">
+        <name>$unitBuyout</name>
+        <full_name>\wow_ah\active_auction::unitBuyout</full_name>
+        <default>0</default>
+        <docblock line="1813">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1813" description="&lt;p&gt;The buyout per unit, in copper (calculated by API)&lt;/p&gt;" type="integer" variable="">
+            <type>integer</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="true" visibility="protected" namespace="wow_ah" line="74" package="wow_ah">
+        <name>$optional</name>
+        <full_name>\object_from_array::optional</full_name>
+        <default>array()</default>
+        <docblock line="74">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="74" description="&lt;p&gt;An indexed array containing the names of variables which are not required for the object's construction&lt;/p&gt;" type="array" variable="">
+            <type>array</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="true" visibility="protected" namespace="wow_ah" line="76" package="wow_ah">
+        <name>$objects</name>
+        <full_name>\object_from_array::objects</full_name>
+        <default>array()</default>
+        <docblock line="76">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="76" description="&lt;p&gt;An associative array whose keys match property names that are other object_from_array's, and whose values are their respective class names&lt;/p&gt;" type="array" variable="">
+            <type>array</type>
+          </tag>
+        </docblock>
+      </property>
+      <method final="false" abstract="true" static="false" visibility="protected" namespace="wow_ah" line="146" package="wow_ah">
+        <name>error</name>
+        <full_name>\object_from_array::error()</full_name>
+        <docblock line="146">
+          <description>Error handling function that is passed an error message.</description>
+          <long-description></long-description>
+          <tag name="param" line="146" description="&lt;p&gt;The error message generated by the constructor.&lt;/p&gt;" type="String" variable="$message">
+            <type>String</type>
+          </tag>
+        </docblock>
+        <argument line="0" by_reference="false">
+          <name>$message</name>
+          <default></default>
+          <type>String</type>
+        </argument>
+        <inherited_from>\object_from_array</inherited_from>
+      </method>
+      <method final="false" abstract="false" static="false" visibility="public" namespace="wow_ah" line="84" package="wow_ah">
+        <name>__construct</name>
+        <full_name>\object_from_array::__construct()</full_name>
+        <docblock line="84">
+          <description>Creates the object by iterating through every property, searching for an element with a key
+corresponding to the property name, and whose value's type matches the type of the property.</description>
+          <long-description></long-description>
+          <tag name="param" line="84" description="&lt;p&gt;An input array whose keys match the object properties.&lt;/p&gt;" type="Array" variable="$assoc_array">
+            <type>Array</type>
+          </tag>
+        </docblock>
+        <argument line="0" by_reference="false">
+          <name>$assoc_array</name>
+          <default></default>
+          <type>Array</type>
+        </argument>
+        <inherited_from>\object_from_array</inherited_from>
+      </method>
+      <method final="false" abstract="false" static="false" visibility="private" namespace="wow_ah" line="104" package="wow_ah">
+        <name>load_property</name>
+        <full_name>\object_from_array::load_property()</full_name>
+        <docblock line="104">
+          <description>Error checks the $input against the class property called $name.</description>
+          <long-description></long-description>
+          <tag name="param" line="104" description="&lt;p&gt;The property name.&lt;/p&gt;" type="String" variable="$name">
+            <type>String</type>
+          </tag>
+          <tag name="param" line="104" description="&lt;p&gt;The input to be checked and loaded.&lt;/p&gt;" type="Mixed" variable="$input">
+            <type>Mixed</type>
+          </tag>
+        </docblock>
+        <argument line="0" by_reference="false">
+          <name>$name</name>
+          <default></default>
+          <type>String</type>
+        </argument>
+        <argument line="0" by_reference="false">
+          <name>$input</name>
+          <default></default>
+          <type>Mixed</type>
+        </argument>
+        <inherited_from>\object_from_array</inherited_from>
+      </method>
+    </class>
+    <class final="false" abstract="false" namespace="wow_ah" line="1821" package="wow_ah">
+      <extends>\wow_ah\object_from_array</extends>
+      <name>sold_auction</name>
+      <full_name>\wow_ah\sold_auction</full_name>
+      <docblock line="1821">
+        <description>A sold auction listed by the selected character</description>
+        <long-description>A sold auction listed by the selected character</long-description>
+        <tag name="package" line="1821" description="wow_ah"/>
+        <tag name="inherited_from" description="\wow_ah\object_from_array" refers="\wow_ah\object_from_array" link="/classes/wow_ah.object_from_array.html"/>
+      </docblock>
+      <property static="true" visibility="protected" namespace="wow_ah" line="1823" package="wow_ah">
+        <name>$optional</name>
+        <full_name>\wow_ah\sold_auction::optional</full_name>
+        <default>array("mail_id")</default>
+        <docblock line="1823">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1823" description="&lt;p&gt;mail id's do not exist for sold auctions that are not claimable&lt;/p&gt;" type="array" variable="">
+            <type>array</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1826" package="wow_ah">
+        <name>$id</name>
+        <full_name>\wow_ah\sold_auction::id</full_name>
+        <default>0</default>
+        <docblock line="1826">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1826" description="&lt;p&gt;The auction id&lt;/p&gt;" type="integer" variable="">
+            <type>integer</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1828" package="wow_ah">
+        <name>$item_id</name>
+        <full_name>\wow_ah\sold_auction::item_id</full_name>
+        <default>0</default>
+        <docblock line="1828">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1828" description="&lt;p&gt;The item id&lt;/p&gt;" type="integer" variable="">
+            <type>integer</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1830" package="wow_ah">
+        <name>$item_name</name>
+        <full_name>\wow_ah\sold_auction::item_name</full_name>
+        <default>""</default>
+        <docblock line="1830">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1830" description="&lt;p&gt;The item name&lt;/p&gt;" type="string" variable="">
+            <type>string</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1832" package="wow_ah">
+        <name>$quantity</name>
+        <full_name>\wow_ah\sold_auction::quantity</full_name>
+        <default>0</default>
+        <docblock line="1832">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1832" description="&lt;p&gt;The quantity of the item&lt;/p&gt;" type="integer" variable="">
+            <type>integer</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1834" package="wow_ah">
+        <name>$level</name>
+        <full_name>\wow_ah\sold_auction::level</full_name>
+        <default>0</default>
+        <docblock line="1834">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1834" description="&lt;p&gt;The level required to use the item&lt;/p&gt;" type="integer" variable="">
+            <type>integer</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1836" package="wow_ah">
+        <name>$buyer</name>
+        <full_name>\wow_ah\sold_auction::buyer</full_name>
+        <default>""</default>
+        <docblock line="1836">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1836" description="&lt;p&gt;The winner of the auction&lt;/p&gt;" type="string" variable="">
+            <type>string</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1838" package="wow_ah">
+        <name>$price</name>
+        <full_name>\wow_ah\sold_auction::price</full_name>
+        <default>0</default>
+        <docblock line="1838">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1838" description="&lt;p&gt;The amount of money earned&lt;/p&gt;" type="integer" variable="">
+            <type>integer</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1840" package="wow_ah">
+        <name>$claimable</name>
+        <full_name>\wow_ah\sold_auction::claimable</full_name>
+        <default>false</default>
+        <docblock line="1840">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1840" description="&lt;p&gt;Whether the earned money is claimable&lt;/p&gt;" type="boolean" variable="">
+            <type>boolean</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1842" package="wow_ah">
+        <name>$mail_id</name>
+        <full_name>\wow_ah\sold_auction::mail_id</full_name>
+        <default>0</default>
+        <docblock line="1842">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1842" description="&lt;p&gt;The id of the mail containing earned money&lt;/p&gt;" type="integer" variable="">
+            <type>integer</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="true" visibility="protected" namespace="wow_ah" line="74" package="wow_ah">
+        <name>$optional</name>
+        <full_name>\object_from_array::optional</full_name>
+        <default>array()</default>
+        <docblock line="74">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="74" description="&lt;p&gt;An indexed array containing the names of variables which are not required for the object's construction&lt;/p&gt;" type="array" variable="">
+            <type>array</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="true" visibility="protected" namespace="wow_ah" line="76" package="wow_ah">
+        <name>$objects</name>
+        <full_name>\object_from_array::objects</full_name>
+        <default>array()</default>
+        <docblock line="76">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="76" description="&lt;p&gt;An associative array whose keys match property names that are other object_from_array's, and whose values are their respective class names&lt;/p&gt;" type="array" variable="">
+            <type>array</type>
+          </tag>
+        </docblock>
+      </property>
+      <method final="false" abstract="true" static="false" visibility="protected" namespace="wow_ah" line="146" package="wow_ah">
+        <name>error</name>
+        <full_name>\object_from_array::error()</full_name>
+        <docblock line="146">
+          <description>Error handling function that is passed an error message.</description>
+          <long-description></long-description>
+          <tag name="param" line="146" description="&lt;p&gt;The error message generated by the constructor.&lt;/p&gt;" type="String" variable="$message">
+            <type>String</type>
+          </tag>
+        </docblock>
+        <argument line="0" by_reference="false">
+          <name>$message</name>
+          <default></default>
+          <type>String</type>
+        </argument>
+        <inherited_from>\object_from_array</inherited_from>
+      </method>
+      <method final="false" abstract="false" static="false" visibility="public" namespace="wow_ah" line="84" package="wow_ah">
+        <name>__construct</name>
+        <full_name>\object_from_array::__construct()</full_name>
+        <docblock line="84">
+          <description>Creates the object by iterating through every property, searching for an element with a key
+corresponding to the property name, and whose value's type matches the type of the property.</description>
+          <long-description></long-description>
+          <tag name="param" line="84" description="&lt;p&gt;An input array whose keys match the object properties.&lt;/p&gt;" type="Array" variable="$assoc_array">
+            <type>Array</type>
+          </tag>
+        </docblock>
+        <argument line="0" by_reference="false">
+          <name>$assoc_array</name>
+          <default></default>
+          <type>Array</type>
+        </argument>
+        <inherited_from>\object_from_array</inherited_from>
+      </method>
+      <method final="false" abstract="false" static="false" visibility="private" namespace="wow_ah" line="104" package="wow_ah">
+        <name>load_property</name>
+        <full_name>\object_from_array::load_property()</full_name>
+        <docblock line="104">
+          <description>Error checks the $input against the class property called $name.</description>
+          <long-description></long-description>
+          <tag name="param" line="104" description="&lt;p&gt;The property name.&lt;/p&gt;" type="String" variable="$name">
+            <type>String</type>
+          </tag>
+          <tag name="param" line="104" description="&lt;p&gt;The input to be checked and loaded.&lt;/p&gt;" type="Mixed" variable="$input">
+            <type>Mixed</type>
+          </tag>
+        </docblock>
+        <argument line="0" by_reference="false">
+          <name>$name</name>
+          <default></default>
+          <type>String</type>
+        </argument>
+        <argument line="0" by_reference="false">
+          <name>$input</name>
+          <default></default>
+          <type>Mixed</type>
+        </argument>
+        <inherited_from>\object_from_array</inherited_from>
+      </method>
+    </class>
+    <class final="false" abstract="false" namespace="wow_ah" line="1851" package="wow_ah">
+      <extends>\wow_ah\object_from_array</extends>
+      <name>ended_auction</name>
+      <full_name>\wow_ah\ended_auction</full_name>
+      <docblock line="1851">
+        <description>An ended auction previously listed by the selected character</description>
+        <long-description>An ended auction previously listed by the selected character</long-description>
+        <tag name="package" line="1851" description="wow_ah"/>
+        <tag name="inherited_from" description="\wow_ah\object_from_array" refers="\wow_ah\object_from_array" link="/classes/wow_ah.object_from_array.html"/>
+      </docblock>
+      <property static="false" visibility="public" namespace="wow_ah" line="1853" package="wow_ah">
+        <name>$id</name>
+        <full_name>\wow_ah\ended_auction::id</full_name>
+        <default>0</default>
+        <docblock line="1853">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1853" description="&lt;p&gt;The auction id&lt;/p&gt;" type="integer" variable="">
+            <type>integer</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1855" package="wow_ah">
+        <name>$item_id</name>
+        <full_name>\wow_ah\ended_auction::item_id</full_name>
+        <default>0</default>
+        <docblock line="1855">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1855" description="&lt;p&gt;The item id&lt;/p&gt;" type="integer" variable="">
+            <type>integer</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1857" package="wow_ah">
+        <name>$item_name</name>
+        <full_name>\wow_ah\ended_auction::item_name</full_name>
+        <default>""</default>
+        <docblock line="1857">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1857" description="&lt;p&gt;The item name&lt;/p&gt;" type="string" variable="">
+            <type>string</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1859" package="wow_ah">
+        <name>$quantity</name>
+        <full_name>\wow_ah\ended_auction::quantity</full_name>
+        <default>0</default>
+        <docblock line="1859">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1859" description="&lt;p&gt;The quantity of the item&lt;/p&gt;" type="integer" variable="">
+            <type>integer</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1861" package="wow_ah">
+        <name>$level</name>
+        <full_name>\wow_ah\ended_auction::level</full_name>
+        <default>0</default>
+        <docblock line="1861">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1861" description="&lt;p&gt;The level required to use the item&lt;/p&gt;" type="integer" variable="">
+            <type>integer</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1863" package="wow_ah">
+        <name>$status</name>
+        <full_name>\wow_ah\ended_auction::status</full_name>
+        <default>""</default>
+        <docblock line="1863">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1863" description="&lt;p&gt;The status of the auction&lt;/p&gt;" type="string" variable="">
+            <type>string</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="false" visibility="public" namespace="wow_ah" line="1865" package="wow_ah">
+        <name>$time</name>
+        <full_name>\wow_ah\ended_auction::time</full_name>
+        <default>0</default>
+        <docblock line="1865">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1865" description="&lt;p&gt;The time left before the returned item in the mail expires (in ms)&lt;/p&gt;" type="integer" variable="">
+            <type>integer</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="true" visibility="protected" namespace="wow_ah" line="74" package="wow_ah">
+        <name>$optional</name>
+        <full_name>\object_from_array::optional</full_name>
+        <default>array()</default>
+        <docblock line="74">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="74" description="&lt;p&gt;An indexed array containing the names of variables which are not required for the object's construction&lt;/p&gt;" type="array" variable="">
+            <type>array</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="true" visibility="protected" namespace="wow_ah" line="76" package="wow_ah">
+        <name>$objects</name>
+        <full_name>\object_from_array::objects</full_name>
+        <default>array()</default>
+        <docblock line="76">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="76" description="&lt;p&gt;An associative array whose keys match property names that are other object_from_array's, and whose values are their respective class names&lt;/p&gt;" type="array" variable="">
+            <type>array</type>
+          </tag>
+        </docblock>
+      </property>
+      <method final="false" abstract="true" static="false" visibility="protected" namespace="wow_ah" line="146" package="wow_ah">
+        <name>error</name>
+        <full_name>\object_from_array::error()</full_name>
+        <docblock line="146">
+          <description>Error handling function that is passed an error message.</description>
+          <long-description></long-description>
+          <tag name="param" line="146" description="&lt;p&gt;The error message generated by the constructor.&lt;/p&gt;" type="String" variable="$message">
+            <type>String</type>
+          </tag>
+        </docblock>
+        <argument line="0" by_reference="false">
+          <name>$message</name>
+          <default></default>
+          <type>String</type>
+        </argument>
+        <inherited_from>\object_from_array</inherited_from>
+      </method>
+      <method final="false" abstract="false" static="false" visibility="public" namespace="wow_ah" line="84" package="wow_ah">
+        <name>__construct</name>
+        <full_name>\object_from_array::__construct()</full_name>
+        <docblock line="84">
+          <description>Creates the object by iterating through every property, searching for an element with a key
+corresponding to the property name, and whose value's type matches the type of the property.</description>
+          <long-description></long-description>
+          <tag name="param" line="84" description="&lt;p&gt;An input array whose keys match the object properties.&lt;/p&gt;" type="Array" variable="$assoc_array">
+            <type>Array</type>
+          </tag>
+        </docblock>
+        <argument line="0" by_reference="false">
+          <name>$assoc_array</name>
+          <default></default>
+          <type>Array</type>
+        </argument>
+        <inherited_from>\object_from_array</inherited_from>
+      </method>
+      <method final="false" abstract="false" static="false" visibility="private" namespace="wow_ah" line="104" package="wow_ah">
+        <name>load_property</name>
+        <full_name>\object_from_array::load_property()</full_name>
+        <docblock line="104">
+          <description>Error checks the $input against the class property called $name.</description>
+          <long-description></long-description>
+          <tag name="param" line="104" description="&lt;p&gt;The property name.&lt;/p&gt;" type="String" variable="$name">
+            <type>String</type>
+          </tag>
+          <tag name="param" line="104" description="&lt;p&gt;The input to be checked and loaded.&lt;/p&gt;" type="Mixed" variable="$input">
+            <type>Mixed</type>
+          </tag>
+        </docblock>
+        <argument line="0" by_reference="false">
+          <name>$name</name>
+          <default></default>
+          <type>String</type>
+        </argument>
+        <argument line="0" by_reference="false">
+          <name>$input</name>
+          <default></default>
+          <type>Mixed</type>
+        </argument>
+        <inherited_from>\object_from_array</inherited_from>
+      </method>
+    </class>
+    <class final="false" abstract="false" namespace="wow_ah" line="1879" package="wow_ah">
+      <extends>\Exception</extends>
+      <name>Exception</name>
+      <full_name>\wow_ah\Exception</full_name>
+      <docblock line="1879">
+        <description>A custom exception for wow_ah</description>
+        <long-description>The wow_ah\Exception stores the last http transaction, and allows for
+chaining of exceptions, so an error can be traced through the API. The last http
+transaction is automatically passed up the chain unless a new link has a transaction
+specified. Exception messages are automatically logged to the file set by set_logfile().
+
+Error codes can be or'd with the ERROR_BUT_RETRY when the API suggests the operation did not "hard" fail
+(e.g. redirect to login page, which happens intermittently but regularly for no reason)</long-description>
+        <tag name="package" line="1879" description="wow_ah"/>
+      </docblock>
+      <constant namespace="wow_ah" line="1881" package="wow_ah">
+        <name>ERROR_BUT_RETRY</name>
+        <full_name>\wow_ah\Exception::ERROR_BUT_RETRY</full_name>
+        <value>1</value>
+        <docblock line="1881">
+          <description>Error flag that indicates the operation should be retried (e.g. received incorrect 302 redirect to login page)</description>
+          <long-description></long-description>
+        </docblock>
+      </constant>
+      <constant namespace="wow_ah" line="1882" package="wow_ah">
+        <name>ERROR_CHAR_IN_GAME</name>
+        <full_name>\wow_ah\Exception::ERROR_CHAR_IN_GAME</full_name>
+        <value>2</value>
+        <docblock line="1882">
+          <description></description>
+          <long-description></long-description>
+        </docblock>
+      </constant>
+      <constant namespace="wow_ah" line="1883" package="wow_ah">
+        <name>ERROR_BID_TOO_LOW</name>
+        <full_name>\wow_ah\Exception::ERROR_BID_TOO_LOW</full_name>
+        <value>4</value>
+        <docblock line="1883">
+          <description></description>
+          <long-description></long-description>
+        </docblock>
+      </constant>
+      <constant namespace="wow_ah" line="1884" package="wow_ah">
+        <name>ERROR_AUCTION_NOT_FOUND</name>
+        <full_name>\wow_ah\Exception::ERROR_AUCTION_NOT_FOUND</full_name>
+        <value>6</value>
+        <docblock line="1884">
+          <description></description>
+          <long-description></long-description>
+        </docblock>
+      </constant>
+      <constant namespace="wow_ah" line="1885" package="wow_ah">
+        <name>ERROR_ACCOUNT_DISABLED</name>
+        <full_name>\wow_ah\Exception::ERROR_ACCOUNT_DISABLED</full_name>
+        <value>8</value>
+        <docblock line="1885">
+          <description></description>
+          <long-description></long-description>
+        </docblock>
+      </constant>
+      <constant namespace="wow_ah" line="1886" package="wow_ah">
+        <name>ERROR_OBJECT_FROM_ARRAY_CONSTRUCTION</name>
+        <full_name>\wow_ah\Exception::ERROR_OBJECT_FROM_ARRAY_CONSTRUCTION</full_name>
+        <value>10</value>
+        <docblock line="1886">
+          <description></description>
+          <long-description></long-description>
+        </docblock>
+      </constant>
+      <constant namespace="wow_ah" line="1887" package="wow_ah">
+        <name>ERROR_UNEXPECTED_HTTP_CODE</name>
+        <full_name>\wow_ah\Exception::ERROR_UNEXPECTED_HTTP_CODE</full_name>
+        <value>12</value>
+        <docblock line="1887">
+          <description></description>
+          <long-description></long-description>
+        </docblock>
+      </constant>
+      <property static="false" visibility="private" namespace="wow_ah" line="1890" package="wow_ah">
+        <name>$last_http</name>
+        <full_name>\wow_ah\Exception::last_http</full_name>
+        <default></default>
+        <docblock line="1890">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1890" description="&lt;p&gt;An http_transaction object for the last transaction before the exception was thrown&lt;/p&gt;" type="object" variable="">
+            <type>object</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="true" visibility="protected" namespace="wow_ah" line="1892" package="wow_ah">
+        <name>$logfile</name>
+        <full_name>\wow_ah\Exception::logfile</full_name>
+        <default>""</default>
+        <docblock line="1892">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="1892" description="&lt;p&gt;Location of the error log file&lt;/p&gt;" type="string" variable="">
+            <type>string</type>
+          </tag>
+        </docblock>
+      </property>
+      <method final="false" abstract="false" static="false" visibility="public" namespace="wow_ah" line="1904" package="wow_ah">
+        <name>__construct</name>
+        <full_name>\wow_ah\Exception::__construct()</full_name>
+        <docblock line="1904">
+          <description>Creates the exception</description>
+          <long-description></long-description>
+          <tag name="param" line="1904" description="&lt;p&gt;The exception message&lt;/p&gt;" type="string" variable="$message">
+            <type>string</type>
+          </tag>
+          <tag name="param" line="1904" description="&lt;p&gt;An http_transaction for the last transaction made before the exception was thrown&lt;/p&gt;" type="object" variable="$last_http">
+            <type>object</type>
+          </tag>
+          <tag name="param" line="1904" description="&lt;p&gt;The error code&lt;/p&gt;" type="integer" variable="$code">
+            <type>integer</type>
+          </tag>
+          <tag name="param" line="1904" description="&lt;p&gt;The previous exception, if any&lt;/p&gt;" type="object" variable="$previous">
+            <type>object</type>
+          </tag>
+          <tag name="see" line="1904" description="" link="\wow_ah\http_transaction"/>
+        </docblock>
+        <argument line="0" by_reference="false">
+          <name>$message</name>
+          <default></default>
+          <type>string</type>
+        </argument>
+        <argument line="0" by_reference="false">
+          <name>$last_http</name>
+          <default></default>
+          <type>object</type>
+        </argument>
+        <argument line="0" by_reference="false">
+          <name>$code</name>
+          <default>0</default>
+          <type>integer</type>
+        </argument>
+        <argument line="0" by_reference="false">
+          <name>$previous</name>
+          <default>NULL</default>
+          <type>object</type>
+        </argument>
+      </method>
+      <method final="false" abstract="false" static="false" visibility="public" namespace="wow_ah" line="1927" package="wow_ah">
+        <name>getAllMessages</name>
+        <full_name>\wow_ah\Exception::getAllMessages()</full_name>
+        <docblock line="1927">
+          <description>Return all exception messages in a chain</description>
+          <long-description></long-description>
+          <tag name="return" line="1927" description="An indexed array of exception messages" type="array">
+            <type>array</type>
+          </tag>
+        </docblock>
+      </method>
+      <method final="false" abstract="false" static="false" visibility="public" namespace="wow_ah" line="1942" package="wow_ah">
+        <name>log_last_http</name>
+        <full_name>\wow_ah\Exception::log_last_http()</full_name>
+        <docblock line="1942">
+          <description>Logs the last http transaction made before the exception in case LOG_HTTP is false</description>
+          <long-description></long-description>
+        </docblock>
+      </method>
+      <method final="false" abstract="false" static="true" visibility="public" namespace="wow_ah" line="1953" package="wow_ah">
+        <name>set_logfile</name>
+        <full_name>\wow_ah\Exception::set_logfile()</full_name>
+        <docblock line="1953">
+          <description>Sets the file where exception messages are logged</description>
+          <long-description></long-description>
+          <tag name="param" line="1953" description="&lt;p&gt;The location of the log file&lt;/p&gt;" type="string" variable="$logfile">
+            <type>string</type>
+          </tag>
+        </docblock>
+        <argument line="0" by_reference="false">
+          <name>$logfile</name>
+          <default></default>
+          <type>string</type>
+        </argument>
+      </method>
+    </class>
+    <source>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</source>
+  </file>
+  <file path="object_from_array.class.php" generated-path="object_from_array.class.html" hash="b83794216054894df763527f2ba7bf9f" package="wow_ah">
+    <docblock line="0">
+      <description>object_from_array.class.php only contains the helper class object_from_array</description>
+      <long-description>Copyright (C) 2016 Aram Akhavan &lt;kaysond@hotmail.com&gt;
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see &lt;http://www.gnu.org/licenses/&gt;.</long-description>
+      <tag name="package" line="0" description="wow_ah"/>
+      <tag name="author" line="0" description="Aram Akhavan" link="mailto:kaysond@hotmail.com"/>
+      <tag name="link" line="0" description="https://github.com/kaysond/wow_ah" link="https://github.com/kaysond/wow_ah"/>
+      <tag name="copyright" line="0" description="2016 Aram Akhavan"/>
+    </docblock>
+    <class final="false" abstract="true" namespace="" line="72" package="wow_ah">
+      <extends/>
+      <name>object_from_array</name>
+      <full_name>\object_from_array</full_name>
+      <docblock line="72">
+        <description>A helper class to create objects with type-checked and name-checked properties from associative arrays.</description>
+        <long-description>A constructor receives the input associative array, and checks that each of the class properties exist as a key in the array, and that the values
+match the property values in type. It's probably not efficient, but it simplifies error-checking and makes code more readable
+by having the object documentation implicit in the class definition.
+
+The property $optional specifies property names that are not required.
+
+The property $object specifies property names (array keys) that are object_from_array's, and their class names (array values).
+
+Limitations: can't handle multi-dimensional arrays, or arrays of objects.
+
+Example usage:
+```php
+class foo extends object_from_array {
+		protected static $optional = array("foo1");
+		protected static $objects = array("foo_object" =&gt; "bar");
+
+		public $foo1 = 0;
+		public $foo2 = "";
+		public $foo3 = array(0,0,"");
+		public $foo_object;
+
+		protected function error($message) {
+			throw new Exception($message);
+		}
+}
+
+class bar extends object_from_array {
+		protected static $optional = array("bar2");
+
+		public $bar1 = 0;
+		public $bar2 = "";
+
+		protected function error($message) {
+			throw new Exception($message);
+		}
+}
+
+$foo = new foo(array("foo2" =&gt; "some string",
+						"foo3" =&gt; array(1,3,"another string"),
+						"foo_object" =&gt; array("bar1" =&gt; 5, "bar2" =&gt; "yet another string")
+				  ));
+```</long-description>
+        <tag name="package" line="72" description="wow_ah"/>
+      </docblock>
+      <property static="true" visibility="protected" namespace="" line="74" package="wow_ah">
+        <name>$optional</name>
+        <full_name>\object_from_array::optional</full_name>
+        <default>array()</default>
+        <docblock line="74">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="74" description="&lt;p&gt;An indexed array containing the names of variables which are not required for the object's construction&lt;/p&gt;" type="array" variable="">
+            <type>array</type>
+          </tag>
+        </docblock>
+      </property>
+      <property static="true" visibility="protected" namespace="" line="76" package="wow_ah">
+        <name>$objects</name>
+        <full_name>\object_from_array::objects</full_name>
+        <default>array()</default>
+        <docblock line="76">
+          <description></description>
+          <long-description></long-description>
+          <tag name="var" line="76" description="&lt;p&gt;An associative array whose keys match property names that are other object_from_array's, and whose values are their respective class names&lt;/p&gt;" type="array" variable="">
+            <type>array</type>
+          </tag>
+        </docblock>
+      </property>
+      <method final="false" abstract="false" static="false" visibility="public" namespace="" line="84" package="wow_ah">
+        <name>__construct</name>
+        <full_name>\object_from_array::__construct()</full_name>
+        <docblock line="84">
+          <description>Creates the object by iterating through every property, searching for an element with a key
+corresponding to the property name, and whose value's type matches the type of the property.</description>
+          <long-description></long-description>
+          <tag name="param" line="84" description="&lt;p&gt;An input array whose keys match the object properties.&lt;/p&gt;" type="Array" variable="$assoc_array">
+            <type>Array</type>
+          </tag>
+        </docblock>
+        <argument line="0" by_reference="false">
+          <name>$assoc_array</name>
+          <default></default>
+          <type>Array</type>
+        </argument>
+      </method>
+      <method final="false" abstract="false" static="false" visibility="private" namespace="" line="104" package="wow_ah">
+        <name>load_property</name>
+        <full_name>\object_from_array::load_property()</full_name>
+        <docblock line="104">
+          <description>Error checks the $input against the class property called $name.</description>
+          <long-description></long-description>
+          <tag name="param" line="104" description="&lt;p&gt;The property name.&lt;/p&gt;" type="String" variable="$name">
+            <type>String</type>
+          </tag>
+          <tag name="param" line="104" description="&lt;p&gt;The input to be checked and loaded.&lt;/p&gt;" type="Mixed" variable="$input">
+            <type>Mixed</type>
+          </tag>
+        </docblock>
+        <argument line="0" by_reference="false">
+          <name>$name</name>
+          <default></default>
+          <type>String</type>
+        </argument>
+        <argument line="0" by_reference="false">
+          <name>$input</name>
+          <default></default>
+          <type>Mixed</type>
+        </argument>
+      </method>
+      <method final="false" abstract="true" static="false" visibility="protected" namespace="" line="146" package="wow_ah">
+        <name>error</name>
+        <full_name>\object_from_array::error()</full_name>
+        <docblock line="146">
+          <description>Error handling function that is passed an error message.</description>
+          <long-description></long-description>
+          <tag name="param" line="146" description="&lt;p&gt;The error message generated by the constructor.&lt;/p&gt;" type="String" variable="$message">
+            <type>String</type>
+          </tag>
+        </docblock>
+        <argument line="0" by_reference="false">
+          <name>$message</name>
+          <default></default>
+          <type>String</type>
+        </argument>
+      </method>
+    </class>
+    <source>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</source>
+  </file>
+  <package name="global" full_name="global"/>
+  <package name="wow_ah" full_name="wow_ah"/>
+  <namespace name="global" full_name="global"/>
+  <namespace name="wow_ah" full_name="wow_ah"/>
+  <deprecated count="0"/>
+</project>

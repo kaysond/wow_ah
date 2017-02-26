@@ -1,0 +1,337 @@
+<html>
+    <head>
+        <script
+            type="text/javascript"
+            src="../js/jquery-1.4.2.min.js">
+        </script>
+        <script
+            type="text/javascript"
+            src="../syntax_highlighter/scripts/shCore.js">
+        </script>
+        <script
+            type="text/javascript"
+            src="../syntax_highlighter/scripts/shBrushJScript.js">
+        </script>
+        <script
+            type="text/javascript"
+            src="../syntax_highlighter/scripts/shBrushPhp.js">
+        </script>
+        <script
+            type="text/javascript"
+            src="../syntax_highlighter/scripts/shBrushXml.js">
+        </script>
+        <link
+            href="../syntax_highlighter/styles/shCore.css" rel="stylesheet"
+            type="text/css"
+        />
+        <link
+            href="../syntax_highlighter/styles/shCoreEclipse.css"
+            rel="stylesheet" type="text/css"
+        />
+        <link
+            href="../syntax_highlighter/styles/shThemeWordpress.css"
+            rel="stylesheet" type="text/css"
+        />
+    </head>
+    <body>
+        <pre class="brush: php">&lt;?php
+/**
+ * wow_ah_test.php is a simple command line interface for testing the wow_ah API
+ *
+ * Commands:
+ * + help
+ * + login:`username`:`password`
+ * + get_character_list
+ * + select_character:`#`
+ * + get_money
+ * + get_mail
+ * + get_mail_info
+ * + get_character
+ * + update_inventory
+ * + update_auctions
+ * + search:`name`:`category`:`minlevel`:`maxlevel`:`quality`:`sort`:`reverse`:`limit`:`item_id`
+ * + bid:`auction_id`:`amount`
+ * + create_auction:`item_id`:`duration`:`quantity`:`stacks`:`buyout per item`:`bid per item`
+ * + cancel_auction:`auction_id`
+ * + take_money:`mail_ids`
+ * + take_all_money
+ * + flush_log
+ *
+ * Copyright (C) 2016 Aram Akhavan &lt;kaysond@hotmail.com&gt;
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ *
+ * @package wow_ah
+ * @author  Aram Akhavan &lt;kaysond@hotmail.com&gt;
+ * @link    https://github.com/kaysond/wow_ah
+ * @copyright 2016 Aram Akhavan
+ */
+namespace wow_ah;
+
+require(&quot;wow_ah.class.php&quot;);
+
+$browser = array(
+	&quot;useragent&quot;      =&gt; &quot;Mozilla/5.0 (Windows NT 6.1; WOW64; rv:48.0) Gecko/20100101 Firefox/48.0&quot;,
+	&quot;language&quot;       =&gt; &quot;en-US&quot;,
+	&quot;resolution&quot;     =&gt; array(1080, 1920),
+	&quot;timezoneoffset&quot; =&gt; 420,
+	&quot;randomseed&quot;     =&gt; &quot;somesalt&quot;,
+	&quot;headers&quot;        =&gt; &quot;Accept-Language: en-US,en;q=0.5\nDNT: 1&quot;
+);
+
+$commands = array(
+	&quot;login:&lt;username&gt;:&lt;password&gt;&quot;,
+	&quot;get_character_list&quot;,
+	&quot;select_character:&lt;#&gt;&quot;,
+	&quot;get_money&quot;,
+	&quot;get_mail&quot;,
+	&quot;get_mail_info&quot;,
+	&quot;get_character&quot;,
+	&quot;update_inventory&quot;,
+	&quot;update_auctions&quot;,
+	&quot;search:&lt;name&gt;:&lt;category&gt;:&lt;minlevel&gt;:&lt;maxlevel&gt;:&lt;quality&gt;:&lt;sort&gt;:&lt;reverse&gt;:&lt;limit&gt;:&lt;item_id&gt;&quot;,
+	&quot;bid:&lt;auction_id&gt;:&lt;amount&gt;&quot;,
+	&quot;create_auction:&lt;item_id&gt;:&lt;duration&gt;:&lt;quantity&gt;:&lt;stacks&gt;:&lt;buyout per item&gt;:&lt;bid per item&gt;&quot;,
+	&quot;cancel_auction:&lt;auction_id&gt;&quot;,
+	&quot;take_money:&lt;mail_ids&gt;&quot;,
+	&quot;take_all_money&quot;,
+	&quot;flush_log&quot;
+);
+
+try {
+	$wow_ah = new wow_ah(&quot;us&quot;,&quot;en&quot;,&quot;wow_ah_test_cookiejar.txt&quot;, &quot;wow_ah_test_log.txt&quot;, $browser);
+}
+catch (Exception $e) {
+	$e-&gt;log_last_http();
+	die(&quot;Error constructing API: &quot; . implode(&quot; &quot;, $e-&gt;getAllMessages()) . &quot;\n&quot;);
+}
+
+if (!$wow_ah-&gt;is_logged_in()) {
+	echo &quot;Session not restored. Please log in using login:&lt;username&gt;:&lt;password&gt;\n&quot;;
+}
+else {
+	echo &quot;Session restored. Characters:\n&quot;;
+	foreach($wow_ah-&gt;get_character_list() as $index =&gt; $char)
+		echo &quot;$index: $char\n&quot;;
+}
+
+while(true) {
+	$line = trim(fgets(STDIN));
+	$terms = explode(&quot;:&quot;, $line);
+
+	try {
+		if ($terms[0] == &quot;login&quot;) {
+			try {
+				echo &quot;Logging in...\n&quot;;
+				$wow_ah-&gt;login($terms[1], $terms[2]);
+				echo &quot;Done. Retrieving characters.\nCharacters:\n&quot;;
+				foreach($wow_ah-&gt;get_character_list() as $index =&gt; $char)
+					echo &quot;$index: $char\n&quot;;
+				}
+			catch (Exception $e) {
+				$e-&gt;log_last_http();
+				echo &quot;Error logging in: &quot; . implode(&quot; &quot;, $e-&gt;getAllMessages()) . &quot;\n&quot;;
+			}
+		}
+		else if ($terms[0] == &quot;get_character_list&quot;) {
+			foreach($wow_ah-&gt;get_character_list() as $index =&gt; $char)
+				echo &quot;$index: $char\n&quot;;
+		}
+		else if ($terms[0] == &quot;select_character&quot;) {
+			try {
+				$wow_ah-&gt;select_character($terms[1]);
+			}
+			catch (Exception $e) {
+				$e-&gt;log_last_http();
+				echo &quot;Error selecting character: &quot; . implode(&quot; &quot;, $e-&gt;getAllMessages()) . &quot;\n&quot;;
+			}
+			echo &quot;Selected character {$terms[1]}\n&quot;;
+			foreach($wow_ah-&gt;get_character_list() as $index =&gt; $char)
+				echo &quot;$index: $char\n&quot;;
+		}
+		else if ($terms[0] == &quot;get_money&quot;) {
+			echo $wow_ah::format_money_string($wow_ah-&gt;get_money()) . &quot;\n&quot;;
+		}
+		else if ($terms[0] == &quot;get_mail&quot;) {
+			print_r($wow_ah-&gt;get_mail());
+			echo &quot;\n&quot;;
+		}
+		else if ($terms[0] == &quot;get_mail_info&quot;) {
+			print_r($wow_ah-&gt;get_mail_info());
+			echo &quot;\n&quot;;
+		}
+		else if ($terms[0] == &quot;get_character&quot;) {
+			print_r($wow_ah-&gt;get_character());
+			echo &quot;\n&quot;;
+		}
+		else if ($terms[0] == &quot;take_money&quot;) {
+			try {
+				$money_obtained = $wow_ah-&gt;take_money($terms[1]);
+				echo &quot;Took &quot; . $wow_ah::format_money_string($money_obtained) . &quot;g.\n&quot;;
+			}
+			catch (Exception $e) {
+				$e-&gt;log_last_http();
+				echo &quot;Error taking money: &quot; . implode(&quot; &quot;, $e-&gt;getAllMessages()) . &quot;\n&quot;;
+			}
+			echo &quot;\n&quot;;
+		}
+		else if ($terms[0] == &quot;take_all_money&quot;) {
+			try {
+				$money_obtained = $wow_ah-&gt;take_all_money();
+				if ($money_obtained == 0)
+					echo &quot;Nothing to take money from\n&quot;;
+				else
+					echo &quot;Took &quot; . $wow_ah::format_money_string($money_obtained) . &quot;g.\n&quot;;
+			}
+			catch (Exception $e) {
+				$e-&gt;log_last_http();
+				echo &quot;Error taking all money: &quot; . implode(&quot; &quot;, $e-&gt;getAllMessages()) . &quot;\n&quot;;
+			}
+			echo &quot;\n&quot;;
+		}
+		else if ($terms[0] == &quot;search&quot;) {
+			try {
+				$search = $wow_ah-&gt;search($terms[1], $terms[2], $terms[3], $terms[4], $terms[5], $terms[6], $terms[7] == &quot;false&quot; ? false : true, $terms[8],date(&quot;Y-m-d H:i:s&quot;), $terms[9]);
+				foreach ($search as $result) {
+					foreach ($result as $key =&gt; $value) {
+						echo &quot;$key: $value, &quot;;
+					}
+					echo &quot;\n&quot;;
+				}
+				echo &quot;Returned &quot; . count($search) . &quot; results.\n&quot;;
+			}
+			catch (Exception $e) {
+				$e-&gt;log_last_http();
+				echo &quot;Error searching: &quot; . implode(&quot; &quot;, $e-&gt;getAllMessages()) . &quot;\n&quot;;
+				if (!$wow_ah-&gt;is_logged_in()) {
+					echo &quot;Not logged in. Attempting to login.\n&quot;;
+					try {
+						$wow_ah-&gt;login(openssl_decrypt($login[&quot;username&quot;], &quot;aes256&quot;, &quot;wow_ah&quot;, 0, &quot;1234567812345678&quot;),openssl_decrypt($login[&quot;password&quot;], &quot;aes256&quot;, &quot;wow_ah&quot;, 0, &quot;1234567812345678&quot;));
+					}
+					catch (Exception $e) {
+						echo &quot;Error searching: &quot; . implode(&quot; &quot;, $e-&gt;getAllMessages()) . &quot;\n&quot;;
+					}
+				}
+			}	
+		}
+		else if ($terms[0] == &quot;bid&quot;) {
+			try {
+				if ($wow_ah-&gt;bid($terms[1], $terms[2]))
+					echo &quot;Auction won.\n&quot;;
+				else
+					echo &quot;Bid accepted.\n&quot;;
+			}
+			catch (Exception $e) {
+				$e-&gt;log_last_http();
+				echo &quot;Error placing bid: &quot; . implode(&quot; &quot;, $e-&gt;getAllMessages()) . &quot;\n&quot;;
+			}
+		}
+		else if ($terms[0] == &quot;update_inventory&quot;) {
+			try {
+				foreach ($wow_ah-&gt;update_inventory() as $item) {
+					foreach ($item as $key =&gt; $value) {
+						echo &quot;$key: $value, &quot;;
+					}
+					echo &quot;\n&quot;;
+				}
+				
+			}
+			catch (Exception $e) {
+				$e-&gt;log_last_http();
+				echo &quot;Error updating inventory: &quot; . implode(&quot; &quot;, $e-&gt;getAllMessages()) . &quot;\n&quot;;
+			}
+		}
+		else if ($terms[0] == &quot;update_auctions&quot;) {
+			try {
+				$auctions = $wow_ah-&gt;update_auctions();
+				echo &quot;Active:\n&quot;;
+				foreach ($auctions-&gt;active as $auction) {
+					foreach ($auction as $key =&gt; $value) {
+						echo &quot;$key: $value, &quot;;
+					}
+					echo &quot;\n&quot;;
+				}
+				echo &quot;Sold:\n&quot;;
+				foreach ($auctions-&gt;sold as $auction) {
+					foreach ($auction as $key =&gt; $value) {
+						echo &quot;$key: $value, &quot;;
+					}
+					echo &quot;\n&quot;;
+				}
+				echo &quot;Ended:\n&quot;;
+				foreach ($auctions-&gt;ended as $auction) {
+					foreach ($auction as $key =&gt; $value) {
+						echo &quot;$key: $value, &quot;;
+					}
+					echo &quot;\n&quot;;
+				}
+				
+			}
+			catch (Exception $e) {
+				$e-&gt;log_last_http();
+				echo &quot;Error updating auctions: &quot; . implode(&quot; &quot;, $e-&gt;getAllMessages()) . &quot;\n&quot;;
+			}
+		}
+		else if ($terms[0] == &quot;create_auction&quot;) {
+			try {
+				$wow_ah-&gt;create_auction($terms[1], $terms[2], $terms[3], $terms[4], $terms[5], $terms[6], true, 0);
+				echo &quot;Created auctions.\n&quot;;
+			}
+			catch (Exception $e) {
+				$e-&gt;log_last_http();
+				echo &quot;Error creating auction: &quot; . implode(&quot; &quot;, $e-&gt;getAllMessages()) . &quot;\n&quot;;
+			}
+		}
+		else if ($terms[0] == &quot;cancel_auction&quot;) {
+			try {
+				$wow_ah-&gt;cancel_auction($terms[1]);
+				echo &quot;Canceled auction {$terms[1]}.\n&quot;;
+			}
+			catch (Exception $e) {
+				$e-&gt;log_last_http();
+				echo &quot;Error canceling auction: &quot; . implode(&quot; &quot;, $e-&gt;getAllMessages()) . &quot;\n&quot;;
+			}
+		}
+		else if ($terms[0] == &quot;flush_log&quot;) {
+			$wow_ah-&gt;flush_log();
+			echo &quot;Flushed log\n&quot;;
+		}
+		else if ($terms[0] == &quot;help&quot;) {
+			echo &quot;Commands:\n\n&quot;;
+			foreach ($commands as $command) {
+				echo $command . &quot;\n&quot;;
+			}
+		}
+		else if ($terms[0] == &quot;exit&quot;) {
+			$wow_ah-&gt;close();
+			die();
+		}
+		else {
+			echo &quot;Unknown command\n&quot;;
+		}
+	} //try
+	catch (\Exception $e) {
+		echo &quot;Caught exception: &quot; . $e-&gt;getMessage();
+	}
+} //while
+
+?&gt;</pre>
+        <script type="text/javascript">
+             SyntaxHighlighter.all();
+             jQuery('.gutter div').each(function(key, data){
+                jQuery(data).prepend('<a name="L'+jQuery(data).text()+'"/>');
+             });
+        </script>
+    </body>
+</html>

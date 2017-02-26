@@ -1,0 +1,2004 @@
+<html>
+    <head>
+        <script
+            type="text/javascript"
+            src="../js/jquery-1.4.2.min.js">
+        </script>
+        <script
+            type="text/javascript"
+            src="../syntax_highlighter/scripts/shCore.js">
+        </script>
+        <script
+            type="text/javascript"
+            src="../syntax_highlighter/scripts/shBrushJScript.js">
+        </script>
+        <script
+            type="text/javascript"
+            src="../syntax_highlighter/scripts/shBrushPhp.js">
+        </script>
+        <script
+            type="text/javascript"
+            src="../syntax_highlighter/scripts/shBrushXml.js">
+        </script>
+        <link
+            href="../syntax_highlighter/styles/shCore.css" rel="stylesheet"
+            type="text/css"
+        />
+        <link
+            href="../syntax_highlighter/styles/shCoreEclipse.css"
+            rel="stylesheet" type="text/css"
+        />
+        <link
+            href="../syntax_highlighter/styles/shThemeWordpress.css"
+            rel="stylesheet" type="text/css"
+        />
+    </head>
+    <body>
+        <pre class="brush: php">&lt;?php
+/**
+ * wow_ah.class.php is a low level API for accessing the World of Warcraft Auction House via the Armory website
+ *
+ * Contains the main API class (wow_ah\wow_ah) and necessary helper classes, objects, and functions
+ *
+ * Copyright (C) 2016 Aram Akhavan &lt;kaysond@hotmail.com&gt;
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ *
+ * @package wow_ah
+ * @author  Aram Akhavan &lt;kaysond@hotmail.com&gt;
+ * @link    https://github.com/kaysond/wow_ah
+ * @copyright 2016 Aram Akhavan
+ */
+namespace wow_ah;
+
+/** Whether the API should log its transactions */
+define(&quot;wow_ah\LOG_API&quot;, false);
+/** Whether the API should log all HTTP requests and responses */
+define(&quot;wow_ah\LOG_HTTP&quot;, false);
+/** 
+ * How many times the battle.net server can redirect the API to the login page before
+ * the API considers the user logged out
+ */
+define(&quot;wow_ah\LOGIN_REDIRECT_LIMIT&quot;, 4);
+/** How many seconds to wait at minimum before flushing the log buffer to the file. */
+define(&quot;wow_ah\LOG_API_INTERVAL&quot;, 30);
+/** How many transactions are allowed before certain functions are disabled */
+define(&quot;wow_ah\TRANSACTION_LIMIT&quot;, 200);
+/** Location of the file containing additional JavaScript for the login procedure */
+define(&quot;wow_ah\SRP_CUSTOM_JS_FILE&quot;, &quot;wow_ah_srp.js&quot;);
+
+require_once(&quot;murmurhash3.php&quot;);
+require_once(&quot;object_from_array.class.php&quot;);
+
+/**
+ * The main API class
+ */
+class wow_ah {
+
+	/** @var resource cURL resource */
+	private $ch;
+	/** @var string Location of the cURL cookie jar/file */
+	private $cookiefile;
+	/** @var string The battle.net region specified by the user in the constructor */
+	private $region;
+	/** @var string The battle.net language specified by the user in the constructor */
+	private $lang;
+	/**
+	 * @var object A browser_info object the API uses to generate HTTP requests
+ 	 * @see browser_info
+	 */
+	private $browser_info;
+	/** 
+	 * @var string JSON-encoded browser fingerprint
+	 * @see wow_ah::generate_fp()
+	 */
+	private $fp;
+	/** @var array An indexed array listing all of the accounts character's, where the 0th index is the selected character for API transactions */
+	private $character_list = array();
+	/** @var array An associative array containing the character information occasionally sent by the server */
+	private $character = array();
+	/** @var integer The amount of money the selected character has*/
+	private $money = 0;
+	/** @var array The contents of the character's mail */
+	private $mail = array();
+	/** @var array The &quot;mail_info&quot; sent by the servers, containing the number of messages, and the maximum number allowed */
+	private $mail_info = array();
+	/** 
+	 * @var array The contents of the selected character's inventory (bags, mail, and bank)
+	 * @see inventory_item
+	 */
+	private $inventory = array();
+	/** 
+	 * @var object All of the auctions for the selected character.
+	 * @see auctions
+	 * @see active_auction
+	 * @see ended_auction
+	 * @see sold_auction
+     */
+	private $auctions;
+	/** @var integer The number of transactions executed by the API */
+	private $transaction_count = 0;
+	/** @var string Some sort of cross-site token for battle.net, sent with some requests */
+	private $xstoken;
+	/** @var boolean Whether the API thinks the character is logged in to battle.net */
+	private $logged_in = false;
+	/** @var boolean Whether the API has detected that the account is logged into the game client */
+	private $char_in_game = false;
+	/** @var int How many times an HTTP request has been 302 redirected to the login page (in a row) */
+	private $login_redirects = 0;
+	/** 
+	 * @var object The last HTTP transaction made by the API, for error handling.
+	 * @see http_transaction
+	 */
+	private $last_http;
+	/** @var string The location of the log file */
+	private $logfile;
+	/** @var array A buffer for log entries so the disk access is not excessive */
+	private $log = array();
+	/** @var integer Timestamp of the last log flush to file */
+	private $last_log_time = 0;
+
+	/**
+	 * Constructs the API
+	 *
+	 * The constructor sets the Battle.net region, the language, the location
+	 * of the curl cookie file, the log file, and information about the browser
+	 * that the API will present
+	 * 
+	 * @param string $region       Battle.net region to use as the subdomain (e.g. &quot;us&quot;) 
+	 * @param string $lang         Battle.net language (e.g. &quot;en&quot;, used in the url as /wow/en/)
+	 * @param string $cookiefile   Location of the file that stores cookies
+	 * @param string $logfile      Location of the log file. This contains errors and log entries
+	 * @param array $browser_info  An associative array containing information about the browser 
+	 * @see browser_info
+	 */
+	function __construct($region, $lang, $cookiefile, $logfile, $browser_info) {
+		$this-&gt;logfile = $logfile;
+		Exception::set_logfile($logfile);
+		$this-&gt;log(&quot;Initializing API...&quot;);
+		$this-&gt;region = $region;
+		$this-&gt;lang = $lang;
+		$this-&gt;browser_info = new browser_info($browser_info);
+		$this-&gt;fp = $this-&gt;generate_fp($this-&gt;browser_info);
+		$this-&gt;cookiefile = $cookiefile;
+
+		libxml_use_internal_errors(true);
+
+		$this-&gt;setup_curl();
+
+		if (!file_exists($this-&gt;cookiefile) || file_get_contents($this-&gt;cookiefile) == &quot;&quot;)
+			$this-&gt;warn(&quot;File `$cookiefile` is empty or does not exist. Session could not be restored.&quot;);
+		else {
+			$this-&gt;log(&quot;Attempting to restore session.&quot;);
+
+			//Request auction index page to check if we're logged in, then parse
+			try {
+				$response = $this-&gt;make_request(&quot;https://{$this-&gt;region}.battle.net/wow/{$this-&gt;lang}/vault/character/auction/index&quot;);
+
+				switch ($response-&gt;http_code) {
+					case &quot;200&quot;:
+						$this-&gt;log(&quot;Session restored successfully.&quot;);
+						$this-&gt;parse_ah_index($response);
+						$this-&gt;retrieve_money(&quot;https://{$this-&gt;region}.battle.net/wow/{$this-&gt;lang}/vault/character/auction/index&quot;);
+						$this-&gt;retrieve_mail(&quot;https://{$this-&gt;region}.battle.net/wow/{$this-&gt;lang}/vault/character/auction/index&quot;);
+						$this-&gt;logged_in = true;
+						break;
+					case &quot;404&quot;:
+						throw new Exception(&quot;HTTP GET request to auction index page returned http code 404. (Account may not have access).&quot;, $this-&gt;last_http);
+						break;
+					case &quot;302&quot;:
+						$this-&gt;log(&quot;Restored session was not logged in.&quot;);
+						break;
+					default:
+						throw new Exception(&quot;HTTP GET request to auction index page returned unexpected http code: {$response-&gt;http_code}.&quot;, $this-&gt;last_http);
+				}
+			}
+			catch (Exception $e) {
+				throw new Exception(&quot;Could not initiate API.&quot;, new \stdClass(), 0, $e);
+			}
+			
+		}
+
+	} //__construct()
+
+	/**
+	 * Checks if the API thinks the user is logged in
+	 *
+	 * The API keeps track of when the user has logged in.
+	 * There is some issue with the Blizzard servers that intermittently
+	 * causes the session cookies to become invalid on their end, resulting
+	 * in all requests returning HTTP code 302. If this happens too many times,
+	 * the API will assume such an issue has occurred, and the user must re-login.
+	 * 
+	 * @return boolean True if the user is logged in
+	 */
+	public function is_logged_in() {
+		return $this-&gt;logged_in;
+	}
+
+	/**
+	 * Gets the list of characters associated with the account
+	 *
+	 * Returns all of the characters on the account. The character
+	 * at index 0 is being used for the API transactions.
+	 * 
+	 * @return array An indexed array of all the characters on the account
+	 */
+	public function get_character_list() {
+		return $this-&gt;character_list;
+	}
+
+	/**
+	 * Gets information about the selected character
+	 *
+	 * Certain requests to the Armory return a JSON object containing information
+	 * about the selected character such as Realm, race, talents, class, faction, etc.
+	 * This is stored without any formatting as an associative array.
+	 * 
+	 * @return array An associative array with information about the selected character
+	 */
+	public function get_character() {
+		return $this-&gt;character;
+	}
+
+	/**
+	 * Gets the amount of money the current character has
+	 * 
+	 * @return int The amount of money in copper
+	 */
+	public function get_money() {
+		return $this-&gt;money;
+	}
+
+	/**
+	 * Gets the contents of the character's mailbox
+	 *
+	 * The Armory website occasionally sends AJAX requests to get the character's mail
+	 * contents and that is stored without any formatting.
+	 * 
+	 * @return array An associative array with the character's mail content
+	 */
+	public function get_mail() {
+		return $this-&gt;mail;
+	}
+
+	/**
+	 * Gets the number of messages in the mailbox
+	 * 
+	 * @return array An associative array containing the max, current, and total messages
+	 */
+	public function get_mail_info() {
+		return $this-&gt;mail_info;
+	}
+
+	/**
+	 * Gets the contents of the selected character's inventory, bank, and mail
+	 *
+	 * Returns an array of inventory_item objects representing the selected
+	 * character's inventory. This must first be populated with update_inventory()
+	 *
+	 * @see inventory_item
+	 * 
+	 * @return array An indexed array containing one object per inventory item
+	 */
+	public function get_inventory() {
+		return $this-&gt;inventory;
+	}
+
+	/**
+	 * Gets the auctions of the selected character
+	 *
+	 * Returns an object containing three properties (active, sold, ended) each of which
+	 * is an array containing its respective type of *_auction object. This must first be 
+	 * populated with update_auctions()
+	 *
+	 * @see auctions
+	 * @see active_auction
+	 * @see sold_auction
+	 * @see ended_auction
+	 * 
+	 * @return object An auctions object
+	 */
+	public function get_auctions() {
+		return $this-&gt;auctions;
+	}
+
+	/**
+	 * Returns the number of transactions executed by the API
+	 *
+	 * The Armory has a limit of 200 transactions per day, so the API keeps track of every auction won
+	 * and every auction created (each stack counts as one). After this number hits a user-defined limit it will disable
+	 * bidding and auction creation. It cannot keep track of transactions made outside the API. 
+	 * 
+	 * @return int The number of transactions executed by the API
+	 */
+	public function get_transaction_count() {
+		return $this-&gt;transaction_count;
+	}
+
+	/**
+	 * Resets the tracked transaction count to zero.
+	 */
+	public function reset_transaction_count() {
+		$this-&gt;transaction_count = 0;
+	}
+
+	/**
+	 * Check if the account is logged into the game
+	 *
+	 * If the account is logged into the game, certain Armory features are disabled,
+	 * and the same are disabled in the API. Searching is essentially the only usable feature
+	 * when this happens.
+	 * 
+	 * @return boolean True if the server response indicates that a character is logged in
+	 */
+	public function is_char_in_game() {
+		return $this-&gt;char_in_game;
+	}
+
+	/**
+	 * Takes the number of copper and returns a &quot;decimal&quot; string of gold (i.e. &quot;gggg.ss.cc&quot;)
+	 * @param  int $money    The amount of money in copper
+	 * @return string        The formatted string
+	 */
+	public static function format_money_string($money) {
+		return substr($money, 0, -4) . &quot;.&quot; . substr($money, -4, 2) . &quot;.&quot; . substr($money, -2);
+	}
+
+	/**
+	 * Logs the user in
+	 *
+	 * Login procedure:
+	 * + GET https://worldofwarcraft.com/{lang}-{region}/ - no referrer
+  	 * + GET https://worldofwarcraft.com/{lang}-{region}/login - referrer https://worldofwarcraft.com/en-us/
+  	 * + Follow redirects to the login page, which should match the url {region}.battle.net/login/{lang}/ and return a code 200
+  	 * + Check for captcha
+  	 * + POST srp info - referer login form url
+  	 * + POST login form - referer login form url
+  	 * + If the last url is the login form - bad password.
+  	 * + If the last url is authenticator, send status checks until accepted, then GET authenticator url + 17 digit random number - referer authenticator url
+  	 * + Should end up at wow website, which should match the url https://worldofwarcraft.com/{lang}-{region}/ with a code 200
+  	 * + GET the first character URL (matching http://{region}.battle.net/wow/{lang}/character/{server}/{character}/simple) - referer wow website
+  	 * + Make sure you actually get there
+  	 * + Get auction house index - referer first character URL
+	 * 
+	 * @param  string $username Battle.net username
+	 * @param  string $password Battle.net password
+	 * @return boolean          True on success
+	 */
+	public function login($username, $password) {
+		$this-&gt;log(&quot;Logging in...&quot;);
+		
+		//Clear the cookies to avoid janky blizzard server problems
+		curl_close($this-&gt;ch);
+		file_put_contents($this-&gt;cookiefile, &quot;&quot;);
+		$this-&gt;setup_curl();
+
+		$this-&gt;log(&quot;Enabling CURLOPT_FOLLOWLOCATION for login requests. (curl will keep all responses, but only the last request header).&quot;);
+		curl_setopt($this-&gt;ch, CURLOPT_FOLLOWLOCATION, true);
+
+		try {
+			//Get the wow website
+			$wow_url = &quot;https://worldofwarcraft.com/{$this-&gt;lang}-{$this-&gt;region}/&quot;;
+			$response = $this-&gt;make_request($wow_url);
+
+			if ($response-&gt;http_code != &quot;200&quot;)
+				throw new Exception(&quot;HTTP GET request to world of warcraft website returned http code {$response-&gt;http_code}. Expected 200.&quot;, $this-&gt;last_http, Exception::ERROR_UNEXPECTED_HTTP_CODE);
+
+			//Get the login form
+			$response = $this-&gt;make_request($wow_url . &quot;login&quot;, array(), $wow_url);
+
+			$loginform_url = $response-&gt;last_url;
+			$pattern_loginform_url = &quot;#^https://{$this-&gt;region}.battle.net/login/{$this-&gt;lang}/\?#&quot;;
+
+			if ($response-&gt;http_code != &quot;200&quot;)
+				throw new Exception(&quot;HTTP GET request to login form returned http code {$response-&gt;http_code}. Expected 200.&quot;, $this-&gt;last_http, Exception::ERROR_UNEXPECTED_HTTP_CODE);
+
+			if (!preg_match($pattern_loginform_url, $loginform_url))
+				throw new Exception(&quot;HTTP GET request to world of warcraft login form did not successfully return bnet login form. Redirected to $loginform_url.&quot;, $this-&gt;last_http);
+				
+			if (stristr($response-&gt;body, &quot;/login/captcha.jpg&quot;))
+				throw new Exception(&quot;Detected captcha in bnet login form. Captcha is not yet supported.&quot;, $this-&gt;last_http);
+
+			//Get the srp client javascript
+			$doc = new \DomDocument;
+			$doc-&gt;loadHTML($response-&gt;body);
+
+			$this-&gt;handle_libxml_errors(libxml_get_errors(), &quot;login form&quot;);
+
+			$xpath = new \DOMXpath($doc);
+			$nodelist = $xpath-&gt;query(&quot;//script[contains(@src,'srp-client')]&quot;);
+			$bnet_srpclient_js_loc = count($nodelist) &gt; 0  &amp;&amp; $nodelist !== false ? $nodelist[0]-&gt;getAttribute(&quot;src&quot;) : &quot;&quot;;
+
+			if($bnet_srpclient_js_loc == &quot;&quot;)
+				throw new Exception(&quot;Could not parse location of bnet srp javascript from login form.&quot;, $this-&gt;last_http);
+
+			$this-&gt;log(&quot;Downloading srp-client js from: $bnet_srpclient_js_loc&quot;);
+			if (substr($bnet_srpclient_js_loc,0,2) == &quot;//&quot;)
+				$bnet_srpclient_js_loc = &quot;http:&quot; . $bnet_srpclient_js_loc;
+
+			try {
+				$bnet_srpclient_js = file_get_contents($bnet_srpclient_js_loc);
+			}
+			catch(Exception $e) {
+				throw new Exception(&quot;Could not download bnet srp javascript file.&quot;, $this-&gt;last_http);
+			}
+
+			//Get the session timeout
+			$this-&gt;log(&quot;Parsing session timeout.&quot;);
+			$nodelist = $xpath-&gt;query(&quot;//input[@id='sessionTimeout' and @type='hidden']&quot;);
+			$sessionTimeout = count($nodelist) &gt; 0 &amp;&amp; $nodelist !== false ? $nodelist[0]-&gt;getAttribute(&quot;value&quot;) : &quot;&quot;;
+
+			if ($sessionTimeout == &quot;&quot;)
+				throw new Exception(&quot;Could not parse session timeout from login form.&quot;, $this-&gt;last_http);
+
+			//Get the srp info from the server, calculate the client info, and submit the login
+			$this-&gt;log(&quot;Requesting srp info.&quot;);
+			$response = $this-&gt;make_request(&quot;https://{$this-&gt;region}.battle.net/login/srp?csrfToken=true&quot;,array(&quot;Accept&quot; =&gt; &quot;application/json&quot;, &quot;Content-Type&quot; =&gt; &quot;application/json&quot;,&quot;X-Requested-With&quot; =&gt; &quot;XMLHttpRequest&quot;),
+											$loginform_url, '{&quot;inputs&quot;:[{&quot;input_id&quot;:&quot;account_name&quot;,&quot;value&quot;:&quot;' . $username . '&quot;}]}');
+			
+			if ($response-&gt;http_code != &quot;200&quot;)
+				throw new Exception(&quot;HTTP POST request to srp info returned http code {$response-&gt;http_code}. Expected 200.&quot;, $this-&gt;last_http, Exception::ERROR_UNEXPECTED_HTTP_CODE);
+
+			$this-&gt;log(&quot;Calculating srp parameters.&quot;);
+			$srpIn = json_decode($response-&gt;body, true);
+			$json = &quot;var e=&quot; . json_encode(array_merge($srpIn, array(&quot;password&quot; =&gt; $password))) . &quot;; var navigator = {appName:'Netscape'};&quot;;
+			$wow_ah_js = file_get_contents(SRP_CUSTOM_JS_FILE);
+
+			$v8js = new \V8Js(&quot;PHP&quot;, array(), array(), false);
+			$srpOut = $v8js-&gt;executeString($json . $bnet_srpclient_js . $wow_ah_js, &quot;srp&quot;, \V8Js::FLAG_FORCE_ARRAY);
+
+			if (!is_null($jsexception = $v8js-&gt;getPendingException()))
+				throw new Exception(&quot;Javascript exception thrown while calculating srp client info.&quot;, array());
+
+			$postdata = array(
+				&quot;accountName&quot;      =&gt; $username,
+				&quot;password&quot;         =&gt; implode(&quot;.&quot;, array_fill(0,strlen($password)+1,&quot;&quot;)),
+				&quot;useSrp&quot;           =&gt; &quot;true&quot;,
+				&quot;publicA&quot;          =&gt; $srpOut[&quot;publicA&quot;],
+				&quot;clientEvidenceM1&quot; =&gt; $srpOut[&quot;clientEvidenceM1&quot;],
+				&quot;csrftoken&quot;        =&gt; $srpIn[&quot;csrf_token&quot;],
+				&quot;sessionTimeout&quot;   =&gt; $sessionTimeout,
+				&quot;persistLogin&quot;     =&gt; &quot;on&quot;,
+				&quot;fp&quot;               =&gt; $this-&gt;fp
+			);
+
+			$this-&gt;log(&quot;Submitting login&quot;);
+			$response = $this-&gt;make_request($loginform_url, array(), $loginform_url, http_build_query($postdata));
+
+			if ($response-&gt;http_code != &quot;200&quot;)
+				throw new Exception(&quot;HTTP POST request to login form returned http code {$response-&gt;http_code}. Expected 200.&quot;, $this-&gt;last_http, Exception::ERROR_UNEXPECTED_HTTP_CODE);
+
+			$login_redirect_url = $response-&gt;last_url;
+
+			if (preg_match($pattern_loginform_url, $login_redirect_url)) {
+				$pattern = '#&lt;div id=&quot;display-errors&quot; class=&quot;alert alert-error alert-icon&quot;&gt;\s*(.*?)&lt;br/&gt;#'; //Could do a full DOM parse here as this is weak to page changes
+				$log_string = preg_match($pattern, $response-&gt;body, $matches) ? $matches[1] : &quot;&quot;;
+				throw new Exception(&quot;Login form submission returned to login form. Likely bad password. Form error: $log_string.&quot;, $this-&gt;last_http);
+			}			
+
+			//Wait for authenticator if that's where it sent us
+			$pattern_authenticator_url = &quot;#^https://{$this-&gt;region}.battle.net/login/{$this-&gt;lang}/authenticator#&quot;;
+			if (preg_match($pattern_authenticator_url, $login_redirect_url)) {
+				$this-&gt;log(&quot;Authenticator detected. Loaded authenticator page.&quot;);
+
+				$flagWaiting = true;
+				$count = 0; //Timeout loop. A little over 2min.
+				$this-&gt;log(&quot;Sending authenticator status checks&quot;);
+				while ($flagWaiting ) {
+					$response = $this-&gt;make_request(&quot;https://{$this-&gt;region}.battle.net/login/authenticator/status?check-&quot; . sprintf(&quot;%d&quot;, round(lcg_value()*1e17)),
+													array(&quot;Accept&quot; =&gt; &quot;*/*&quot;, &quot;X-Requested-With&quot; =&gt; &quot;XMLHttpRequest&quot;), $login_redirect_url);
+					if ($response-&gt;http_code != &quot;200&quot;)
+						throw new Exception(&quot;HTTP GET request to the authenticator check returned http code {$response-&gt;http_code}. Expected 200.&quot;, $this-&gt;last_http, Exception::ERROR_UNEXPECTED_HTTP_CODE);
+
+					$response_json = json_decode($response-&gt;body, true);
+					if (!isset($response_json[&quot;two_factor_state&quot;]))
+						throw new Exception(&quot;Invalid response from authenticator check.&quot;, $this-&gt;last_http);
+
+					switch($response_json[&quot;two_factor_state&quot;]) {
+						case &quot;PENDING&quot;:
+							$this-&gt;log(&quot;Waiting...&quot;);
+							break;
+						case &quot;TIMEOUT&quot;:
+							throw new Exception(&quot;Authenticator check timed out.&quot;, $this-&gt;last_http, Exception::ERROR_BUT_RETRY);
+							break;
+						case &quot;REJECTED&quot;:
+							throw new Exception(&quot;Authenticator check was rejected.&quot;, $this-&gt;last_http);
+							break;
+						case &quot;ACCEPTED&quot;:
+							$flagWaiting = false;
+							$this-&gt;log(&quot;Received authenticator response.&quot;);
+							break;
+						default:
+							throw new Exception(&quot;Unknown response from authenticator check.&quot;, $this-&gt;last_http);
+					}
+
+					$count++;
+					if ($count &gt; 60)
+						throw new Exception(&quot;Sent 60 authenticator requests with only \&quot;PENDING\&quot; responses. Assumed timed out.&quot;, $this-&gt;last_http);
+					sleep(2); //Match the website's 2s delay between checks
+				}
+
+				//Now send a new request to the authenticator page to make it back to the wow homepage
+				$response = $this-&gt;make_request($login_redirect_url . sprintf(&quot;&amp;%d&quot;, round(lcg_value()*1e17)), array(), $login_redirect_url);
+				if ($response-&gt;http_code != &quot;200&quot;)
+					throw new Exception(&quot;HTTP GET request to authenticator page returned http code {$response-&gt;http_code}. Expected 200.&quot;, $this-&gt;last_http, Exception::ERROR_UNEXPECTED_HTTP_CODE);
+
+				//Update the url to what should be the wow homepage
+				$login_redirect_url = $response-&gt;last_url;
+
+			}
+
+			if (stristr($login_redirect_url, &quot;challenge&quot;))
+				throw new Exception(&quot;Battle.net issued login challenge. Please login manually once.&quot;);
+			else if ($login_redirect_url != $wow_url)
+				throw new Exception(&quot;Redirected to $login_redirect_url. Expected $wow_url.&quot;, $this-&gt;last_http);
+
+			$this-&gt;log(&quot;Logged in. Getting first character page.&quot;);
+			$pattern_character_url = &quot;#http://{$this-&gt;region}.battle.net/wow/{$this-&gt;lang}/character/.*?/.*?/simple#&quot;;
+			if (!preg_match($pattern_character_url, $response-&gt;body, $matches))
+				throw new Exception(&quot;Could not find character url in wow homepage.&quot;, $this-&gt;last_http);
+			$character_url = $matches[0];
+
+			$response = $this-&gt;make_request($character_url, array(), $wow_url);
+			if ($response-&gt;http_code != &quot;200&quot;)
+				throw new Exception(&quot;HTTP GET request to character page returned http code {$response-&gt;http_code}. Expected 200.&quot;, $this-&gt;last_http, Exception::ERROR_UNEXPECTED_HTTP_CODE);
+			if (!preg_match(&quot;#^&quot; . $character_url . &quot;#&quot;, $response-&gt;last_url))
+				throw new Exception(&quot;Redirected to {$response-&gt;last_url}. Expected $character_url.&quot;, $this-&gt;last_http);
+
+			//Finally, get the auction house index, expecting to be redirected to https
+			$ah_index_url = &quot;http://{$this-&gt;region}.battle.net/wow/{$this-&gt;lang}/vault/character/auction/&quot;;
+
+			$response = $this-&gt;make_request($ah_index_url, array(), $character_url);
+			if ($response-&gt;http_code != &quot;200&quot;)
+				throw new Exception(&quot;HTTP GET request to auction house index page returned http code {$response-&gt;http_code}. Expected 200.&quot;, $this-&gt;last_http, Exception::ERROR_UNEXPECTED_HTTP_CODE);
+			if (!preg_match(&quot;#^https://&quot; . substr($ah_index_url,7) . &quot;#&quot;, $response-&gt;last_url))
+				throw new Exception(&quot;Redirected to {$response-&gt;last_url}. Expected https://&quot; . substr($ah_index_url, 7) . &quot;.&quot;, $this-&gt;last_http);
+
+			curl_setopt($this-&gt;ch, CURLOPT_FOLLOWLOCATION, false);
+			$this-&gt;log(&quot;Disabled CURLOPT_FOLLOWLOCATION&quot;);
+
+			$this-&gt;parse_ah_index($response);
+			$this-&gt;retrieve_money($response-&gt;last_url);
+			$this-&gt;retrieve_mail($response-&gt;last_url);
+
+		} //try
+		catch (Exception $e) {
+			curl_setopt($this-&gt;ch, CURLOPT_FOLLOWLOCATION, false);
+			$this-&gt;log(&quot;Disabled CURLOPT_FOLLOWLOCATION&quot;);
+			throw new Exception(&quot;Could not log in.&quot;, new \stdClass(), 0, $e);
+		}
+
+		$this-&gt;logged_in = true;
+		return true;
+
+	} //login()
+
+	/**
+	 * Selects a character to be used for API transactions
+	 *
+	 * Whichever character is in the 0'th index of the character list
+	 * is used for all API transactions. This function moves the selected character
+	 * to that index, so the whole character list will change.
+	 * 
+	 * @param  int $index    Index of the character to be used, from get_character_list()
+	 * @return boolean       True on success
+	 */
+	public function select_character($index) {
+		$index = intval($index);
+		$index = $index &gt; count($this-&gt;character_list) ? count($this-&gt;character_list)-1 : $index;
+		$this-&gt;log(&quot;Selecting character $index.&quot;);
+
+		if ($index == 0) {
+			return true;
+		}
+
+		try {
+			$response = $this-&gt;make_request(&quot;https://{$this-&gt;region}.battle.net/wow/{$this-&gt;lang}/pref/character&quot;, array(&quot;Accept&quot; =&gt; &quot;*/*&quot;, &quot;X-Requested-With&quot; =&gt; &quot;XMLHttpRequest&quot;),
+											&quot;https://{$this-&gt;region}.battle.net/wow/{$this-&gt;lang}/vault/character/auction/index&quot;, http_build_query(array(&quot;index&quot; =&gt; $index, &quot;xstoken&quot; =&gt; $this-&gt;xstoken)));
+		
+			if ($response-&gt;http_code != &quot;200&quot;) {
+				throw new Exception(&quot;HTTP POST request to select character returned code {$response-&gt;http_code}. Expected 200.&quot;, $this-&gt;last_http, Exception::ERROR_UNEXPECTED_HTTP_CODE);
+			}
+
+			//Reload the page to get the new character indices
+			$response = $this-&gt;make_request(&quot;https://{$this-&gt;region}.battle.net/wow/{$this-&gt;lang}/vault/character/auction/index&quot;);
+			
+			if ($response-&gt;http_code != &quot;200&quot;) {
+				throw new Exception(&quot;HTTP GET request to retrieve character indices returned code {$response-&gt;http_code}. Expected 200.&quot;, $this-&gt;last_http, Exception::ERROR_UNEXPECTED_HTTP_CODE);
+			}
+
+			$this-&gt;parse_ah_index($response);
+			$this-&gt;retrieve_money(&quot;https://{$this-&gt;region}.battle.net/wow/{$this-&gt;lang}/vault/character/auction/index&quot;);
+			$this-&gt;retrieve_mail(&quot;https://{$this-&gt;region}.battle.net/wow/{$this-&gt;lang}/vault/character/auction/index&quot;);
+		}
+		catch (Exception $e) {
+			throw new Exception(&quot;Failed to select character.&quot;, new \stdClass(), 0, $e);
+		}
+
+		return true;
+
+	}
+
+	/**
+	 * Performs a search of the auction house
+	 *
+	 * Searches the auction house. For all filters, a value of -1 (int or string) disables them. Specifying an item_id
+	 * guarantees only that item is returned, and still allows for filtering. Some error checking is performed on values that are
+	 * not entered raw on the website. The API pauses for 1 second between consecutive requests (the website returns a
+	 * maximum of 40 results at a time) for a single search. The Armory returns only the first 200 results.
+	 * 
+	 * @param  string  $name      Item name
+	 * @param  string  $category  Category, subcategory, and sub-sub category, separated by commas (see categories.txt) (e.g. 0,2)
+	 * @param  int     $minlevel  Minimum level
+	 * @param  int     $maxlevel  Maximum level
+	 * @param  int     $quality   Minimum item quality (0 = Poor, 1 = Common, 2 = Uncommon, 3 = Rare, 4 = Epic)
+	 * @param  string  $sort      How to sort results (&quot;rarity&quot;, &quot;quantity&quot;, &quot;level&quot;, &quot;ilvl&quot;, &quot;time&quot;, &quot;bid&quot;, &quot;unitBid&quot;, &quot;buyout&quot;, &quot;unitBuyout&quot;)
+	 * @param  boolean  $reverse   True is descending, false is ascending
+	 * @param  int     $limit     How many auctions to return, -1 for all (Armory limits to 200)
+	 * @param  string  $timestamp A user-specified time stamp (mysql format, e.g. date(&quot;Y-m-d H:i:s&quot;)) to add to all results of this search. Useful for data analysis
+	 * @param  integer $item_id   WoW item id. When this is not 0, disables name, category, minlevel, maxlevel, and quality fields
+	 * @see    search_result
+	 * 
+	 * @return array              An indexed array of search result objects, in the sort order specified.
+	 */
+	public function search($name, $category, $minlevel, $maxlevel, $quality, $sort, $reverse, $limit, $timestamp = 0, $item_id = 0) {
+		//Only need to validate inputs that aren't entered raw by the user on the website
+		$name = rawurlencode($name);
+
+		$pattern = &quot;/^-?\d+(?:,-?\d+){0,2}$/&quot;;
+		if (preg_match($pattern, $category) != 1)
+			$category = &quot;-1&quot;;
+		$category = urlencode($category);
+
+		$item_id = intval($item_id);
+		$minlevel = intval($minlevel);
+		$maxlevel = intval($maxlevel);
+		$quality = intval($quality);
+
+		if ($quality &lt; -1)
+			$quality = -1;
+		else if ($quality &gt; 4)
+			$quality = 4;
+
+		if ($item_id &lt; 0)
+			$item_id = 0;
+
+		switch ($sort) {
+			case &quot;rarity&quot;:
+			case &quot;quantity&quot;:
+			case &quot;levlel&quot;:
+			case &quot;ilvl&quot;:
+			case &quot;time&quot;:
+			case &quot;bid&quot;:
+			case &quot;unitBid&quot;:
+			case &quot;buytout&quot;:
+			case &quot;unitBuyout&quot;:
+				break;
+			default:
+				$sort = &quot;unitBuyout&quot;;
+		}
+
+		$reverse = boolval($reverse) ? &quot;true&quot; : &quot;false&quot;;
+
+		$limit = intval($limit);
+		if ($limit &gt; 200 || $limit &lt; 1)
+			$limit = 200;
+
+		if ($item_id == 0)
+			$this-&gt;log(&quot;Searching - name: $name; category: $category; minlevel: $minlevel; maxlevel: $maxlevel, quality: $quality; sort: $sort; reverse: $reverse; limit: $limit&quot;);
+		else
+			$this-&gt;log(&quot;Searching - item_id: $item_id; sort: $sort; reverse: $reverse; limit: $limit&quot;);
+
+		$count = 0;
+		$prev_url = &quot;https://{$this-&gt;region}.battle.net/wow/{$this-&gt;lang}/vault/character/auction/browse&quot;;
+		$results_out = array();
+
+		while ($count &lt; $limit) {
+			$end = $count + 40 &gt; $limit ? $limit : $count + 40;
+			if ($item_id == 0)
+				$url = &quot;https://{$this-&gt;region}.battle.net/wow/{$this-&gt;lang}/vault/character/auction/browse?n=$name&amp;filterId=$category&amp;minLvl=$minlevel&amp;maxLvl=$maxlevel&amp;qual=$quality&amp;start=$count&amp;end=$end&amp;sort=$sort&amp;reverse=$reverse&quot;;
+			else
+				$url = &quot;https://{$this-&gt;region}.battle.net/wow/{$this-&gt;lang}/vault/character/auction/browse?itemId=$item_id&amp;start=$count&amp;end=$end&amp;sort=$sort&amp;reverse=$reverse&quot;;
+			
+			try {
+				$response = $this-&gt;make_request($url, array(), $prev_url);
+
+				if ($response-&gt;http_code != &quot;200&quot;) {
+					throw new Exception(&quot;HTTP GET request to retrieve search results returned code {$response-&gt;http_code}. Expected 200.&quot;, $this-&gt;last_http,
+											   $response-&gt;http_code == 302 ? (Exception::ERROR_BUT_RETRY | Exception::ERROR_UNEXPECTED_HTTP_CODE) : Exception::ERROR_UNEXPECTED_HTTP_CODE);
+				}
+
+				$results = $this-&gt;parse_search_results($response-&gt;body, $timestamp);
+
+				if (count($results[&quot;results&quot;]) == 0)
+					return array();
+
+				$results_out = array_merge($results_out, $results[&quot;results&quot;]);
+				if ($results[&quot;count&quot;] &lt; $limit)
+					$limit = $results[&quot;count&quot;];
+
+				$this-&gt;retrieve_money($url);
+				$this-&gt;retrieve_mail($url);
+
+				$prev_url = $url;
+				$count += 40;
+
+			}
+			catch (Exception $e) {
+				throw new Exception(&quot;Could not execute search of '$name' from $count to $end.&quot;, new \stdClass(), 0, $e);
+			}
+
+			//Don't seem like a robot
+			sleep(1);
+		}
+
+		return $results_out;
+		
+	}
+
+	/**
+	 * Bid on an auction
+	 *
+	 * If the bid amount is equal to or higher than the buyout, it will automatically
+	 * result in buying out the auction.
+	 *
+	 * @param  int    $auction_id The auction id
+	 * @param  int    $bid        The bid amount in copper
+	 *
+	 * @return boolean            True if the bid results in a buyout, false if it is just a high bid
+	 */
+	public function bid($auction_id, $bid) {
+		if (!$this-&gt;char_in_game &amp;&amp; $this-&gt;transaction_count &lt; TRANSACTION_LIMIT) {
+			$auction_id = intval($auction_id);
+			$bid = intval($bid);
+
+			$this-&gt;log(&quot;Bidding &quot; . wow_ah::format_money_string($bid) . &quot;g on auction id $auction_id.&quot;);
+			$referer = &quot;https://{$this-&gt;region}.battle.net/wow/{$this-&gt;lang}/vault/character/auction/browse&quot;;
+
+			try {
+				$response = $this-&gt;make_request(&quot;https://{$this-&gt;region}.battle.net/wow/{$this-&gt;lang}/vault/character/auction/bid&quot;, array(&quot;Accept&quot; =&gt; &quot;application/json, text/javascript, */*; q=0.01&quot;, &quot;X-Requested-With&quot; =&gt; &quot;XMLHttpRequest&quot;),
+									$referer, http_build_query(array(&quot;auc&quot; =&gt; $auction_id, &quot;money&quot; =&gt; $bid, &quot;xstoken&quot; =&gt; $this-&gt;xstoken)));
+				if ($response-&gt;http_code != 200)
+					throw new Exception(&quot;HTTP POST request to place bid returned http code {$response-&gt;http_code}. Expected 200.&quot;,
+											   $this-&gt;last_http, $response-&gt;http_code == 302 ? (Exception::ERROR_BUT_RETRY | Exception::ERROR_UNEXPECTED_HTTP_CODE) : Exception::ERROR_UNEXPECTED_HTTP_CODE);
+
+				$response_json = json_decode($response-&gt;body, true);
+				if (isset($response_json[&quot;error&quot;]) || !isset($response_json[&quot;item&quot;][&quot;owner&quot;])) {
+					switch ($response_json[&quot;error&quot;][&quot;code&quot;]) {
+						case 1004:
+							$error_code = Exception::ERROR_AUCTION_NOT_FOUND;
+							break;
+						case 1006:
+							$error_code = Exception::ERROR_BID_TOO_LOW;
+							break;
+						case 10010:
+							$error_code = Exception::ERROR_ACCOUNT_DISABLED;
+							break;
+						default:
+							$error_code = 0;
+					}
+					throw new Exception(&quot;Bid placement returned an error: &quot; . $response_json[&quot;error&quot;][&quot;message&quot;] . &quot;.&quot;, $this-&gt;last_http, $error_code);
+				}
+				if ($response_json[&quot;item&quot;][&quot;owner&quot;]) { 
+					$this-&gt;transaction_count++;
+				}
+				return $response_json[&quot;item&quot;][&quot;owner&quot;];
+			}
+			catch (Exception $e) {
+				throw new Exception(&quot;Could not place bid.&quot;, new \stdClass(), 0, $e);
+			}
+		}
+	}
+
+	/**
+	 * Update the selected character's inventory
+	 *
+	 * Sends a request to .../auction/create and parses the inventory from the CDATA. Since this link could be clicked
+	 * from anywhere, an optional referer parameter is provided. The inventory contains all items in the bags, bank, and mail.
+	 * The inventory is stored in the API and can be retrieved without an update by using get_inventory().
+	 *
+	 * @param  string $referer The URL of the referer to use when making the page request
+	 *
+	 * @see inventory_item
+	 *
+	 * @return array           Returns an array of objects representing items in the inventory
+	 */
+	public function update_inventory($referer = &quot;&quot;) {
+		if (!$this-&gt;char_in_game) {
+			try {
+				$this-&gt;log(&quot;Updating inventory...&quot;);
+				if ($referer == &quot;&quot;)
+						$referer = &quot;https://{$this-&gt;region}.battle.net/wow/{$this-&gt;lang}/vault/character/auction/browse&quot;;
+
+				$response = $this-&gt;make_request(&quot;https://{$this-&gt;region}.battle.net/wow/{$this-&gt;lang}/vault/character/auction/create&quot;, array(), $referer);
+				if ($response-&gt;http_code != 200)
+					throw new Exception(&quot;HTTP POST request to get inventory returned http code {$response-&gt;http_code}. Expected 200.&quot;,
+											   $this-&gt;last_http, $response-&gt;http_code == 302 ? (Exception::ERROR_BUT_RETRY | Exception::ERROR_UNEXPECTED_HTTP_CODE) : Exception::ERROR_UNEXPECTED_HTTP_CODE);
+
+				$doc = new \DomDocument;
+				$doc-&gt;loadHTML('&lt;?xml encoding=&quot;utf-8&quot; ?&gt;' . $response-&gt;body);
+
+				$this-&gt;handle_libxml_errors(libxml_get_errors(), &quot;inventory&quot;);
+
+				$xpath = new \DOMXpath($doc);
+				$inventory_text = $xpath-&gt;evaluate(&quot;string(//div[@id='inventories']/script/text())&quot;);
+
+				$pattern = &quot;@AuctionCreate\.items = ({['\&quot;\w\s:{},/\._\-&amp;#;]+});@u&quot;;
+				if (!preg_match($pattern, $inventory_text, $matches))
+					throw new Exception(&quot;Could not parse inventory CDATA.&quot;, $this-&gt;last_http);
+
+				//The CDATA contains a javascript object with some keys having quotes, others not.
+				$pattern = &quot;@ (\w+): @&quot;;
+				$inventory_array = json_decode(preg_replace($pattern, &quot; \&quot;\\1\&quot;: &quot;, str_replace(&quot;'&quot;, &quot;\&quot;&quot;, $matches[1])), true);
+
+				if (is_null($inventory_array))
+					throw new Exception(&quot;Could not decode inventory CDATA.&quot;, $this-&gt;last_http);
+
+				foreach ($inventory_array as $item) {
+					$inventory[] = new inventory_item($item);
+				}
+
+				$this-&gt;inventory = $inventory;
+
+			}
+			catch (Exception $e) {
+				throw new Exception(&quot;Could not update inventory.&quot;, new \stdClass(), 0, $e);
+			}
+
+			return $this-&gt;inventory;
+		}
+	}
+
+	/**
+	 * Create an auction on the ah
+	 *
+	 * Performs some error checking then submits a number of requests as necessary to list auctions on the auction house
+	 * 
+	 * @param  int $item_id    		item id
+	 * @param  int $duration   		auction duration (0 = 12 hours, 1 = 24 hours, 2 = 48 hours)
+	 * @param  int $quantity   		quantity per stack
+	 * @param  int $stacks     		number of stacks
+	 * @param  int $buyout     		buyout price in copper
+	 * @param  int $bid        		bid price in copper
+	 * @param  bool $pricePerItem   prices given per item (false = per stack)
+	 * @param  int $sourceType 		from where to withdraw items (0 = all [bags, bank, and mail], 1 = bags, 2 = bank, 3 = mail)
+	 *
+	 * @return boolean  			True on success 
+	 */
+	public function create_auction($item_id, $duration, $quantity, $stacks, $buyout, $bid, $pricePerItem, $sourceType) {
+		if (!$this-&gt;char_in_game &amp;&amp; $this-&gt;transaction_count &lt; TRANSACTION_LIMIT) {
+			//Error checking
+			//We may want to eventually check relevant parameters against the inventory for added security
+			$item_id = intval($item_id);
+
+			$duration = intval($duration);
+			if ($duration &lt; 0)
+				$duration = 0;
+			else if ($duration &gt; 2)
+				$duration = 2;
+
+			$quantity = intval($quantity);
+			$stacks = intval($stacks);
+
+			$buyout = intval($buyout);
+			if ($buyout &lt; 0)
+				$buyout = 0;
+
+			$bid = intval($bid);
+			if ($bid &lt; 0)
+				$bid = 0;
+
+			$pricePerItem = boolval($pricePerItem);
+
+			$sourceType = intval($sourceType);
+			if ($sourceType &lt; 0)
+				$sourceType = 0;
+			else if ($sourceType &gt; 3)
+				$sourceType = 3;
+
+			$postdata_deposit = http_build_query(array(&quot;item&quot; =&gt; $item_id, &quot;duration&quot; =&gt; $duration, &quot;quan&quot; =&gt; $quantity, &quot;stacks&quot; =&gt; $stacks, &quot;sk&quot; =&gt; $this-&gt;xstoken));
+			$referer = &quot;https://{$this-&gt;region}.battle.net/wow/{$this-&gt;lang}/vault/character/auction/create&quot;;
+			
+			try {
+				//For some reason the website sends an unneccessary POST request to /deposit with either the previous
+				//quantities or the maximum single stack quantity before making a request to /getSimilar
+				$response = $this-&gt;make_request(&quot;https://{$this-&gt;region}.battle.net/wow/{$this-&gt;lang}/vault/character/auction/deposit&quot;,
+												array(&quot;Accept&quot; =&gt; &quot;application/json, text/javascript, */*; q=0.01&quot;, &quot;X-Requested-With&quot; =&gt; &quot;XMLHttpRequest&quot;), $referer, $postdata_deposit);
+
+				if ($response-&gt;http_code != 200) {
+					throw new Exception(&quot;HTTP POST request to deposit items (create auction) returned http code {$response-&gt;http_code}. Expected 200.&quot;,
+									    $this-&gt;last_http, $response-&gt;http_code == 302 ? (Exception::ERROR_BUT_RETRY | Exception::ERROR_UNEXPECTED_HTTP_CODE) : Exception::ERROR_UNEXPECTED_HTTP_CODE);
+				}
+
+				//jQuery passes a timestamp in ms as parameter _ to avoid IE caching issues
+				$postdata_similar = http_build_query(array(&quot;sort&quot; =&gt; &quot;unitBuyout&quot;, &quot;itemId&quot; =&gt; $item_id, &quot;reverse&quot; =&gt; false, &quot;_&quot; =&gt; intval(microtime(true) * 1000)));
+
+				$response = $this-&gt;make_request(&quot;https://{$this-&gt;region}.battle.net/wow/{$this-&gt;lang}/vault/character/auction/similar&quot;,
+												array(&quot;Accept&quot; =&gt; &quot;text/html, */*; q=0.01&quot;, &quot;X-Requested-With&quot; =&gt; &quot;XMLHttpRequest&quot;), $referer, $postdata_similar);
+
+				if ($response-&gt;http_code != 200) {
+					throw new Exception(&quot;HTTP POST request to get similar items (create auction) returned http code {$response-&gt;http_code}. Expected 200.&quot;,
+									    $this-&gt;last_http, $response-&gt;http_code == 302 ? (Exception::ERROR_BUT_RETRY | Exception::ERROR_UNEXPECTED_HTTP_CODE) : Exception::ERROR_UNEXPECTED_HTTP_CODE);
+				}
+
+				//Now do the real request to /deposits
+				$response = $this-&gt;make_request(&quot;https://{$this-&gt;region}.battle.net/wow/{$this-&gt;lang}/vault/character/auction/deposit&quot;,
+												array(&quot;Accept&quot; =&gt; &quot;application/json, text/javascript, */*; q=0.01&quot;, &quot;X-Requested-With&quot; =&gt; &quot;XMLHttpRequest&quot;), $referer, $postdata_deposit);
+
+				if ($response-&gt;http_code != 200) {
+					throw new Exception(&quot;HTTP POST request to deposit items (create auction) returned http code {$response-&gt;http_code}. Expected 200.&quot;,
+									    $this-&gt;last_http, $response-&gt;http_code == 302 ? (Exception::ERROR_BUT_RETRY | Exception::ERROR_UNEXPECTED_HTTP_CODE) : Exception::ERROR_UNEXPECTED_HTTP_CODE);
+				}
+
+				$response_json = json_decode($response-&gt;body, true);
+				if (!isset($response_json[&quot;ticket&quot;]))
+					throw new Exception(&quot;Could not get deposit ticket.&quot;, $this-&gt;last_http);
+				else
+					$ticket = $response_json[&quot;ticket&quot;];
+
+				$postdata_createauction = array(
+					&quot;itemId&quot;     =&gt; $item_id,
+					&quot;quantity&quot;   =&gt; $quantity,
+					&quot;sourceType&quot; =&gt; $sourceType,
+					&quot;duration&quot;   =&gt; $duration,
+					&quot;stacks&quot;     =&gt; $stacks,
+					&quot;buyout&quot;     =&gt; $buyout,
+					&quot;bid&quot;        =&gt; $bid,
+					&quot;type&quot;       =&gt; $pricePerItem ? &quot;perItem&quot; : &quot;perStack&quot;,
+					&quot;xstoken&quot;    =&gt; $this-&gt;xstoken
+				);
+
+				$nextticket = $ticket;
+				for ($i = 0; $i &lt; $stacks; $i++) {
+					$postdata_createauction[&quot;ticket&quot;] = $nextticket;
+					$response = $this-&gt;make_request(&quot;https://{$this-&gt;region}.battle.net/wow/{$this-&gt;lang}/vault/character/auction/createAuction&quot;,
+													array(&quot;Accept&quot; =&gt; &quot;application/json, text/javascript, */*; q=0.01&quot;, &quot;X-Requested-With&quot; =&gt; &quot;XMLHttpRequest&quot;), $referer, http_build_query($postdata_createauction));
+
+					if ($response-&gt;http_code != 200) {
+						throw new Exception(&quot;HTTP POST request to create auction returned http code {$response-&gt;http_code}. Expected 200.&quot;,
+										    $this-&gt;last_http, $response-&gt;http_code == 302 ? (Exception::ERROR_BUT_RETRY | Exception::ERROR_UNEXPECTED_HTTP_CODE) : Exception::ERROR_UNEXPECTED_HTTP_CODE);
+					}
+
+					$response_json = json_decode($response-&gt;body, true);
+					if (isset($response_json[&quot;error&quot;])) {
+						switch ($response_json[&quot;error&quot;][&quot;code&quot;]) {
+							case 10010:
+								$error_code = Exception::ERROR_ACCOUNT_DISABLED;
+								break;
+							default:
+								$error_code = 0;
+						}
+						throw new Exception(&quot;Auction creation request returned an error: &quot; . $response_json[&quot;error&quot;][&quot;message&quot;], $this-&gt;last_http, $error_code);
+					}
+					else if(isset($response_json[&quot;auction&quot;][&quot;auctionId&quot;])) {
+						$this-&gt;log(&quot;Created auction number  &quot; . $response_json[&quot;auction&quot;][&quot;auctionId&quot;] . &quot;.&quot;);
+						if ($i &lt; $stacks - 1) {
+							if (isset($response_json[&quot;auction&quot;][&quot;nextTicket&quot;]))
+								$nextticket = $response_json[&quot;auction&quot;][&quot;nextTicket&quot;];
+							else
+								throw new Exception(&quot;Could not get next ticket for auction creation.&quot;);
+						}
+					}
+					else {
+						throw new Exception(&quot;Auction object not present in response.&quot;, $this-&gt;last_http);
+					}
+					$this-&gt;transaction_count++;
+					sleep(1);
+
+				}
+
+				return true;
+
+			} //try
+			catch (Exception $e) {
+				throw new Exception(&quot;Could not create auction&quot;, new \stdClass(), 0, $e);
+			}
+
+		} //if not in game and transaction limit not reached
+
+	} //create_auction()
+
+	/**
+	 * Updates the selected characters auctions (active, sold, and ended)
+	 * 
+	 * @return object An auctions object containing arrays of active_auction, sold_auction, ended_auction
+	 */
+	public function update_auctions() {
+		try {
+			$this-&gt;log(&quot;Updating auctions...&quot;);
+			$response = $this-&gt;make_request(&quot;https://{$this-&gt;region}.battle.net/wow/{$this-&gt;lang}/vault/character/auction/auctions&quot;, array(),
+											&quot;https://{$this-&gt;region}.battle.net/wow/{$this-&gt;lang}/vault/character/auction/index&quot;);
+
+			if ($response-&gt;http_code != 200) {
+				throw new Exception(&quot;HTTP GET request to get auctions returned http code {$response-&gt;http_code}. Expected 200.&quot;,
+								    $this-&gt;last_http, $response-&gt;http_code == 302 ? (Exception::ERROR_BUT_RETRY | Exception::ERROR_UNEXPECTED_HTTP_CODE) : Exception::ERROR_UNEXPECTED_HTTP_CODE);
+			}
+
+			$auctions = new auctions();
+
+			$doc = new \DomDocument;
+			$doc-&gt;loadHTML('&lt;?xml encoding=&quot;utf-8&quot; ?&gt;' . $response-&gt;body);
+
+			$this-&gt;handle_libxml_errors(libxml_get_errors(), &quot;auctions&quot;);
+
+			$xpath = new \DOMXpath($doc);
+
+			//Active Auctions
+			$nodelist = $xpath-&gt;query(&quot;//div[@id='auctions-active']//tr[contains(@id,'auction')]&quot;);
+
+			foreach($nodelist as $node) {
+				$current_auction = array();
+				$auction_id_str = $xpath-&gt;evaluate(&quot;string(@id)&quot;, $node);
+				$current_auction[&quot;id&quot;] = intval(substr($auction_id_str, strpos($auction_id_str, &quot;-&quot;)+1));
+				$item_id_url = $xpath-&gt;evaluate(&quot;string(td[@class='item']/a/strong/../@href)&quot;, $node);
+				$current_auction[&quot;item_id&quot;] = intval(substr($item_id_url, strrpos($item_id_url, &quot;/&quot;)+1));
+				$current_auction[&quot;item_name&quot;] = $xpath-&gt;evaluate(&quot;string(td[@class='item']/a/strong/text())&quot;, $node);
+				$current_auction[&quot;quantity&quot;] = intval($xpath-&gt;evaluate(&quot;string(td[@class='quantity']/text())&quot;, $node));
+				$current_auction[&quot;time&quot;] = $xpath-&gt;evaluate(&quot;string(td[@class='time']/span/text())&quot;, $node);
+				$current_auction[&quot;high_bidder&quot;] = $xpath-&gt;evaluate(&quot;string(td[@class='status']/span/text())&quot;, $node);
+
+				$gold = str_replace(&quot;,&quot;,&quot;&quot;, $xpath-&gt;evaluate(&quot;string(td[@class='price']/div[contains(@class,'price-bid')]/span[@class='icon-gold'])&quot;, $node));
+				$silver = $xpath-&gt;evaluate(&quot;string(td[@class='price']/div[contains(@class,'price-bid')]/span[@class='icon-silver'])&quot;, $node);
+				$copper = $xpath-&gt;evaluate(&quot;string(td[@class='price']/div[contains(@class,'price-bid')]/span[@class='icon-copper'])&quot;, $node);
+				$current_auction[&quot;bid&quot;] = 10000*intval($gold) + 100*intval($silver) + intval($copper);
+				$current_auction[&quot;unitBid&quot;] = intdiv($current_auction[&quot;bid&quot;], $current_auction[&quot;quantity&quot;]);
+
+
+				$gold = str_replace(&quot;,&quot;,&quot;&quot;, $xpath-&gt;evaluate(&quot;string(td[@class='price']/div[contains(@class,'price-buyout')]/span[@class='icon-gold'])&quot;, $node));
+				$silver = $xpath-&gt;evaluate(&quot;string(td[@class='price']/div[contains(@class,'price-buyout')]/span[@class='icon-silver'])&quot;, $node);
+				$copper = $xpath-&gt;evaluate(&quot;string(td[@class='price']/div[contains(@class,'price-buyout')]/span[@class='icon-copper'])&quot;, $node);
+				$current_auction[&quot;buyout&quot;] = 10000*intval($gold) + 100*intval($silver) + intval($copper);
+				$current_auction[&quot;unitBuyout&quot;] = intdiv($current_auction[&quot;buyout&quot;], $current_auction[&quot;quantity&quot;]);
+
+				$auctions-&gt;active[] = new active_auction($current_auction);
+			}
+
+			//Sold Auctions
+			$nodelist = $xpath-&gt;query(&quot;//div[@id='auctions-sold']//tr[contains(@id,'auction')]&quot;);
+
+			foreach($nodelist as $node) {
+				$current_auction = array();
+				$auction_id_str = $xpath-&gt;evaluate(&quot;string(@id)&quot;, $node);
+				$current_auction[&quot;id&quot;] = intval(substr($auction_id_str, strpos($auction_id_str, &quot;-&quot;)+1));
+				$item_id_url = $xpath-&gt;evaluate(&quot;string(td[@class='item']/a/@href)&quot;, $node);
+				$current_auction[&quot;item_id&quot;] = intval(substr($item_id_url, strrpos($item_id_url, &quot;/&quot;)+1));
+				$item_str = $xpath-&gt;evaluate(&quot;string(td[@class='item']/@data-raw)&quot;, $node);
+				$current_auction[&quot;item_name&quot;] = substr($item_str, strpos($item_str, &quot; &quot;)+1);
+				$current_auction[&quot;quantity&quot;] = intval($xpath-&gt;evaluate(&quot;string(td[@class='quantity']/text())&quot;, $node));
+				$current_auction[&quot;level&quot;] = intval($xpath-&gt;evaluate(&quot;string(td[@class='level']/text())&quot;, $node));
+				$current_auction[&quot;buyer&quot;] = trim($xpath-&gt;evaluate(&quot;string(td[@class='align-center']/text())&quot;, $node)); //This is a weak search but it's all we have to go on...
+				$current_auction[&quot;price&quot;] = intval($xpath-&gt;evaluate(&quot;string(td[@class='price']/@data-raw)&quot;, $node));
+				$current_auction[&quot;claimable&quot;] = boolval(!stristr($xpath-&gt;evaluate(&quot;string(td[@class='options']/a/@class)&quot;, $node), &quot;disabled&quot;));
+
+				if ($current_auction[&quot;claimable&quot;])
+					$current_auction[&quot;mail_id&quot;] = intval($xpath-&gt;evaluate(&quot;string(td[@class='options']/input[@class='mail-id']/@value)&quot;, $node));
+
+				$auctions-&gt;sold[] = new sold_auction($current_auction);
+			}
+
+			//Ended Auctions
+			$nodelist = $xpath-&gt;query(&quot;//div[@id='auctions-ended']//tr[contains(@id,'auction')]&quot;);
+
+			foreach($nodelist as $node) {
+				$current_auction = array();
+				$auction_id_str = $xpath-&gt;evaluate(&quot;string(@id)&quot;, $node);
+				$current_auction[&quot;id&quot;] = intval(substr($auction_id_str, strpos($auction_id_str, &quot;-&quot;)+1));
+				$item_id_url = $xpath-&gt;evaluate(&quot;string(td[@class='item']/a/@href)&quot;, $node);
+				$current_auction[&quot;item_id&quot;] = intval(substr($item_id_url, strrpos($item_id_url, &quot;/&quot;)+1));
+				$item_str = $xpath-&gt;evaluate(&quot;string(td[@class='item']/@data-raw)&quot;, $node);
+				$current_auction[&quot;item_name&quot;] = substr($item_str, strpos($item_str, &quot; &quot;)+1);
+				$current_auction[&quot;quantity&quot;] = intval($xpath-&gt;evaluate(&quot;string(td[@class='quantity']/text())&quot;, $node));
+				$current_auction[&quot;level&quot;] = intval($xpath-&gt;evaluate(&quot;string(td[@class='level']/text())&quot;, $node));
+				$current_auction[&quot;status&quot;] = trim($xpath-&gt;evaluate(&quot;string(td[@class='status']/span/text())&quot;, $node));
+				$current_auction[&quot;time&quot;] = intval($xpath-&gt;evaluate(&quot;string(td[@class='time']/@data-raw)&quot;, $node));
+
+				$auctions-&gt;ended[] = new ended_auction($current_auction);
+			}
+
+			$this-&gt;auctions = $auctions;
+
+			return $this-&gt;auctions;
+
+		} //try
+		catch (Exception $e) {
+			throw new Exception(&quot;Could not update auctions.&quot;, new \stdClass(), 0, $e);
+		}
+
+	} //update_auctions()
+
+	/**
+	 * Cancels an auction
+	 * 
+	 * @param  int $auction_id id of the auction to cancel
+	 */
+	public function cancel_auction($auction_id) {
+		try {
+			$referer = &quot;https://{$this-&gt;region}.battle.net/wow/{$this-&gt;lang}/vault/character/auction/auctions&quot;;
+			$postdata = http_build_query(array(&quot;auc&quot; =&gt; $auction_id, &quot;xstoken&quot; =&gt; $this-&gt;xstoken));
+			$response = $this-&gt;make_request(&quot;https://{$this-&gt;region}.battle.net/wow/{$this-&gt;lang}/vault/character/auction/cancel&quot;,
+											array(&quot;Accept&quot; =&gt; &quot;application/json, text/javascript, */*; q=0.01&quot;, &quot;X-Requested-With&quot; =&gt; &quot;XMLHttpRequest&quot;), $referer, $postdata);
+
+			if ($response-&gt;http_code != 200) {
+				throw new Exception(&quot;HTTP POST request to cancel auction returned http code {$response-&gt;http_code}. Expected 200.&quot;,
+								    $this-&gt;last_http, $response-&gt;http_code == 302 ? (Exception::ERROR_BUT_RETRY | Exception::ERROR_UNEXPECTED_HTTP_CODE) : Exception::ERROR_UNEXPECTED_HTTP_CODE);
+			}
+
+			$response_json = json_decode($response-&gt;body, true);
+			if (isset($response_json[&quot;error&quot;])) {
+				switch ($response_json[&quot;error&quot;][&quot;code&quot;]) {
+					case 10010:
+						$error_code = Exception::ERROR_ACCOUNT_DISABLED;
+						break;
+					default:
+						$error_code = 0;
+				}
+				throw new Exception(&quot;Auction cancellation request returned an error: &quot; . $response_json[&quot;error&quot;][&quot;message&quot;], $this-&gt;last_http, $error_code);
+			}
+			else if(isset($response_json[&quot;auction&quot;][&quot;auctionId&quot;])) {
+				$this-&gt;log(&quot;Cancelled auction number  &quot; . $response_json[&quot;auction&quot;][&quot;auctionId&quot;] . &quot;.&quot;);
+			}
+			else {
+				throw new Exception(&quot;Auction object not present in response.&quot;, $this-&gt;last_http);
+			}
+
+			return true;
+		}
+		catch (Exception $e) {
+			throw new Exception(&quot;Could not cancel auction.&quot;, new \stdClass(), 0, $e);
+		}
+		
+	} //cancel_auction()
+
+	/**
+	 * Takes money from auction profits in the selected character's mailbox
+	 *
+	 * Takes the money from the passed mail id's. Mail id's can be obtained either from
+	 * get_auctions() or get_mail().
+	 *
+	 * @param  string $mail_ids Mail id's, separated by commas
+	 *
+	 * @return int              The amount of money obtained, in copper
+	 */
+	public function take_money($mail_ids) {
+		try {
+			$referer = &quot;https://{$this-&gt;region}.battle.net/wow/{$this-&gt;lang}/vault/character/auction/auctions&quot;;
+			$postdata = http_build_query(array(&quot;mailIds&quot; =&gt; $mail_ids, &quot;xstoken&quot; =&gt; $this-&gt;xstoken));
+			$response = $this-&gt;make_request(&quot;https://{$this-&gt;region}.battle.net/wow/{$this-&gt;lang}/vault/character/auction/takeMoney&quot;,
+											array(&quot;Accept&quot; =&gt; &quot;application/json, text/javascript, */*; q=0.01&quot;, &quot;X-Requested-With&quot; =&gt; &quot;XMLHttpRequest&quot;), $referer, $postdata);
+
+			if ($response-&gt;http_code != 200) {
+				throw new Exception(&quot;HTTP POST request to take money returned http code {$response-&gt;http_code}. Expected 200.&quot;,
+								    $this-&gt;last_http, $response-&gt;http_code == 302 ? (Exception::ERROR_BUT_RETRY | Exception::ERROR_UNEXPECTED_HTTP_CODE) : Exception::ERROR_UNEXPECTED_HTTP_CODE);
+			}
+
+			$response_json = json_decode($response-&gt;body, true);
+			if (isset($response_json[&quot;error&quot;])) {
+				switch ($response_json[&quot;error&quot;][&quot;code&quot;]) {
+					case 10010:
+						$error_code = Exception::ERROR_ACCOUNT_DISABLED;
+						break;
+					default:
+						$error_code = 0;
+				}
+				throw new Exception(&quot;Take money request returned an error: &quot; . $response_json[&quot;error&quot;][&quot;message&quot;] . &quot;.&quot;, $this-&gt;last_http, $error_code);
+			}
+			else if(isset($response_json[&quot;claimedMail&quot;])) {
+				$money_obtained = $response_json[&quot;claimedMail&quot;][&quot;moneyObtained&quot;];
+				$log_string = &quot;Claimed &quot; . self::format_money_string($money_obtained) . &quot;g from mails: &quot;;
+				foreach ($response_json[&quot;claimedMail&quot;][&quot;claimedMails&quot;] as $mailid) {
+					$log_string .= &quot;$mailid,&quot;;
+				}
+				$log_string = substr($log_string, 0, -1);
+				$this-&gt;log($log_string);
+
+				return $money_obtained;
+			}
+			else {
+				throw new Exception(&quot;Claimed mail object not present in response.&quot;, $this-&gt;last_http);
+			}
+
+		}
+		catch (Exception $e) {
+			throw new Exception(&quot;Could not take money.&quot;, new \stdClass(), 0, $e);
+		}
+	}
+
+	/**
+	 * Helper function to take all available money
+	 *
+	 * Calls update_auctions(), concatenates mail id's from sold auctions that are claimable
+	 * and passes them to take_money()
+	 * 
+	 * @return int The amount of money taken in copper, 0 if there are no auctions
+	 */
+	public function take_all_money() {
+		$this-&gt;log(&quot;Taking all money...&quot;);
+		try {
+			$this-&gt;update_auctions();
+			if (empty($this-&gt;auctions-&gt;sold)) {
+				$this-&gt;log(&quot;Attempted to take all money, but there was nothing to take.&quot;);
+				return 0;
+			}
+			$mail_ids = &quot;&quot;;
+			foreach ($this-&gt;auctions-&gt;sold as $auction) {
+				if ($auction-&gt;claimable)
+					$mail_ids .= $auction-&gt;mail_id . &quot;,&quot;;
+			}
+			if ($mail_ids == &quot;&quot;) {
+				$this-&gt;log(&quot;Attempted to take all money, but there was nothing to take.&quot;);
+				return 0;
+			}
+			else {
+				$mail_ids = substr($mail_ids, 0, -1);
+			}
+
+			return $this-&gt;take_money($mail_ids);
+		}
+		catch (Exception $e) {
+			throw new Exception(&quot;Could not take all money.&quot;, new \stdClass(), 0, $e);
+		}
+	}
+
+	/**
+	 * Cleanly shuts down the API
+	 *
+	 * This method should always be used to shut down the API
+	 * since it will call curl_close() which actually writes the cookies
+	 * to the cookie file. It also flushes the log buffer.
+	 */
+	public function close() {
+		$this-&gt;flush_log();
+		curl_close($this-&gt;ch);
+	}
+
+	/**
+	 * Sets up some curl parameters during construction
+	 */
+	private function setup_curl() {
+		$this-&gt;log(&quot;Setting up cURL.&quot;);
+		$this-&gt;ch = curl_init();
+		$options = array(
+			CURLOPT_RETURNTRANSFER =&gt; true,
+			CURLOPT_USERAGENT      =&gt; $this-&gt;browser_info-&gt;useragent,
+			CURLOPT_ENCODING       =&gt; &quot;&quot;,
+			CURLOPT_HEADER         =&gt; true,
+			CURLOPT_CONNECTTIMEOUT =&gt; 4,
+			CURLINFO_HEADER_OUT    =&gt; true,
+			CURLOPT_COOKIEJAR      =&gt; $this-&gt;cookiefile,
+			CURLOPT_COOKIEFILE     =&gt; $this-&gt;cookiefile
+			);
+		curl_setopt_array($this-&gt;ch, $options);
+	}
+
+	/**
+	 * Retrieves the character's gold amount and the character information
+	 *
+	 * Calls to this method happen automatically as necessary in the course
+	 * of other transactions, to mimic the website.
+	 *
+	 * @param  string $referer The url of the referer to use for HTTP requests
+	 */
+	private function retrieve_money($referer) {
+		$this-&gt;log(&quot;Retrieving money.&quot;);
+		try {
+			$response = $this-&gt;make_request(&quot;https://{$this-&gt;region}.battle.net/wow/{$this-&gt;lang}/vault/character/auction/money&quot;, array(&quot;Accept&quot; =&gt; &quot;application/json, text/javascript, */*; q=0.01&quot;, &quot;X-Requested-With&quot; =&gt; &quot;XMLHttpRequest&quot;),
+										$referer, &quot;&quot;);
+
+			if ($response-&gt;http_code != &quot;200&quot;) {
+				throw new Exception(&quot;HTTP GET request to retrieve money returned code {$response-&gt;http_code}. Expected 200.&quot;, $this-&gt;last_http,
+										  $response-&gt;http_code == 302 ? (Exception::ERROR_BUT_RETRY | Exception::ERROR_UNEXPECTED_HTTP_CODE) : Exception::ERROR_UNEXPECTED_HTTP_CODE);
+			}
+
+		}
+		catch (Exception $e) {
+			throw new Exception(&quot;Could not retrieve money.&quot;, new \stdClass(), 0, $e);
+		}
+
+		$json = json_decode($response-&gt;body, true);
+		if (isset($json[&quot;error&quot;]) &amp;&amp; ($json[&quot;error&quot;][&quot;code&quot;] == 100 || $json[&quot;error&quot;][&quot;code&quot;] == 115))
+			$this-&gt;char_in_game = true;
+		else if (!isset($json[&quot;money&quot;]) || !isset($json[&quot;character&quot;]))
+			throw new Exception(&quot;Unexpected json returned when retrieving money.&quot;, $this-&gt;last_http);
+		else
+			$this-&gt;char_in_game = false;
+	
+		if (!$this-&gt;char_in_game) {
+			$this-&gt;money = $json[&quot;money&quot;];
+			$this-&gt;character = $json[&quot;character&quot;];
+		}
+	}
+
+	/**
+	 * Retrieves the character's mailbox and mail information
+	 *
+	 * Calls to this method happen automatically as necessary in the course
+	 * of other transactions, to mimic the website.
+	 *
+	 * @param  string $referer The url of the referer to use for HTTP requests
+	 */
+	private function retrieve_mail($referer) {
+		$this-&gt;log(&quot;Retrieving mail.&quot;);
+		try {
+			$response = $this-&gt;make_request(&quot;https://{$this-&gt;region}.battle.net/wow/{$this-&gt;lang}/vault/character/auction/mail&quot;, array(&quot;Accept&quot; =&gt; &quot;application/json, text/javascript, */*; q=0.01&quot;, &quot;X-Requested-With&quot; =&gt; &quot;XMLHttpRequest&quot;),
+											$referer, http_build_query(array(&quot;lastMailId&quot; =&gt; &quot;0&quot;, &quot;xstoken&quot; =&gt; $this-&gt;xstoken)));		
+
+			if ($response-&gt;http_code != &quot;200&quot;) {
+				throw new Exception(&quot;HTTP GET request to retrieve mail returned code {$response-&gt;http_code}. Expected 200.&quot;, $this-&gt;last_http,
+											$response-&gt;http_code == 302 ? (Exception::ERROR_BUT_RETRY | Exception::ERROR_UNEXPECTED_HTTP_CODE) : Exception::ERROR_UNEXPECTED_HTTP_CODE);
+			}
+		}
+		catch (Exception $e) {
+			throw new Exception(&quot;Could not retrieve mail.&quot;, new \stdClass(), 0, $e);
+		}
+		$json = json_decode($response-&gt;body, true);
+		if (isset($json[&quot;error&quot;]) &amp;&amp; ($json[&quot;error&quot;][&quot;code&quot;] == 100 || $json[&quot;error&quot;][&quot;code&quot;] == 115))
+			$this-&gt;char_in_game = true;
+		else if (!isset($json[&quot;mail&quot;]) || !isset($json[&quot;mailInfo&quot;]) || !isset($json[&quot;character&quot;]) )
+			throw new Exception(&quot;Unexpected json returned when retrieving mail&quot;, $this-&gt;last_http);
+		else
+			$this-&gt;char_in_game = false;
+
+		if (!$this-&gt;char_in_game) {
+			$this-&gt;mail = $json[&quot;mail&quot;];
+			$this-&gt;mail_info = $json[&quot;mailInfo&quot;];
+			$this-&gt;character = $json[&quot;character&quot;];
+		}
+	}
+
+	//Returns an array containing
+	//&quot;results&quot; =&gt; array(&quot;id&quot; =&gt; auction id, &quot;item_id&quot; =&gt; item id &quot;item&quot; =&gt; item name, &quot;seller&quot; =&gt; seller name, &quot;quantity&quot; =&gt; quantity,
+	//					 &quot;time&quot; =&gt; time left, &quot;bid&quot; =&gt; bid, &quot;unitBid&quot; =&gt; bid per unit, &quot;buyout&quot; =&gt; buyout, &quot;unitBuyout&quot; =&gt; buyout per unit)
+	//&quot;count&quot; =&gt; how many total results there are
+	/**
+	 * Parses search results from an HTTP response into an array of objects
+	 *
+	 * @param  string $body      An HTTP response body
+	 * @param  string $timestamp A timestamp (in mysql format e.g. date(&quot;Y-m-d H:i:s&quot;)) to add to each of the parsed results (useful for data analysis)
+	 *
+	 * @see search_result
+	 *
+	 * @return array             An indexed array of search_result objects
+	 */
+	private function parse_search_results($body, $timestamp) {
+		$this-&gt;log(&quot;Parsing search results.&quot;);
+		$doc = new \DomDocument;
+		$doc-&gt;loadHTML('&lt;?xml encoding=&quot;utf-8&quot; ?&gt;' . $body);
+
+		$this-&gt;handle_libxml_errors(libxml_get_errors(), &quot;search results&quot;);
+
+		$xpath = new \DOMXpath($doc);
+		$nodelist = $xpath-&gt;query(&quot;//tr[contains(@id,'auction')]&quot;);
+		if (count($nodelist) &gt; 0 &amp;&amp; $nodelist !== false) {
+			$results = array();
+			foreach($nodelist as $node) {
+				$current_result = array();
+				$current_result[&quot;id&quot;] = intval(substr($node-&gt;getAttribute(&quot;id&quot;),strlen(&quot;auction-&quot;)));
+				$current_result[&quot;item_name&quot;] = substr($xpath-&gt;evaluate(&quot;string(td[@class='item']/span[@class='sort-data hide']/text())&quot;, $node), 2);
+				$id_url = $xpath-&gt;evaluate(&quot;string(td[@class='item']/a/strong/../@href)&quot;, $node);
+				$current_result[&quot;item_id&quot;] = intval(substr($id_url, strrpos($id_url, &quot;/&quot;)+1));
+				$current_result[&quot;seller&quot;] = $xpath-&gt;evaluate(&quot;string(td[@class='item']/a[contains(@href,'character')])&quot;, $node);
+				$current_result[&quot;quantity&quot;] = intval($xpath-&gt;evaluate(&quot;string(td[@class='quantity']/text())&quot;, $node));
+				$current_result[&quot;time&quot;] = $xpath-&gt;evaluate(&quot;string(td[@class='time']/span/text())&quot;, $node);
+
+				$gold = str_replace(&quot;,&quot;, &quot;&quot;, $xpath-&gt;evaluate(&quot;string(td[@class='price']/div[contains(@class,'price-bid')]/span[@class='icon-gold'])&quot;, $node));
+				$silver = $xpath-&gt;evaluate(&quot;string(td[@class='price']/div[contains(@class,'price-bid')]/span[@class='icon-silver'])&quot;, $node);
+				$copper = $xpath-&gt;evaluate(&quot;string(td[@class='price']/div[contains(@class,'price-bid')]/span[@class='icon-copper'])&quot;, $node);
+				$current_result[&quot;bid&quot;] = 10000*intval($gold) + 100*intval($silver) + intval($copper);
+				$current_result[&quot;unitBid&quot;] = intdiv($current_result[&quot;bid&quot;], $current_result[&quot;quantity&quot;]);
+
+
+				$gold = str_replace(&quot;,&quot;,&quot;&quot;, $xpath-&gt;evaluate(&quot;string(td[@class='price']/div[contains(@class,'price-buyout')]/span[@class='icon-gold'])&quot;, $node));
+				$silver = $xpath-&gt;evaluate(&quot;string(td[@class='price']/div[contains(@class,'price-buyout')]/span[@class='icon-silver'])&quot;, $node);
+				$copper = $xpath-&gt;evaluate(&quot;string(td[@class='price']/div[contains(@class,'price-buyout')]/span[@class='icon-copper'])&quot;, $node);
+				$current_result[&quot;buyout&quot;] = 10000*intval($gold) + 100*intval($silver) + intval($copper);
+				$current_result[&quot;unitBuyout&quot;] = intdiv($current_result[&quot;buyout&quot;], $current_result[&quot;quantity&quot;]);
+
+				$current_result[&quot;timestamp&quot;] = $timestamp;
+
+				$results[] = new search_result($current_result);
+			}
+			$count = intval($xpath-&gt;evaluate(&quot;string(//strong[@class='results-total'])&quot;));
+
+			$this-&gt;log(&quot;Parsed &quot; . count($results) . &quot; results.&quot;);
+
+			return array(&quot;results&quot; =&gt; $results, &quot;count&quot; =&gt; $count);
+		}
+		else {
+			$this-&gt;log(&quot;No search results parsed.&quot;);
+			return array(&quot;results&quot; =&gt; array(), &quot;count&quot; =&gt; 0);
+		}
+
+	}
+
+	/**
+	 * Parses the character list and xstoken from an HTTP response from ..../auction/index 
+	 *
+	 * @param  string $response An HTTP response body
+	 */
+	private function parse_ah_index($response) {
+		$this-&gt;log(&quot;Parsing auction house index.&quot;);
+		$doc = new \DomDocument;
+		//Hack to deal with utf8 properly
+		$doc-&gt;loadHTML('&lt;?xml encoding=&quot;utf-8&quot; ?&gt;' . $response-&gt;body);
+		$this-&gt;handle_libxml_errors(libxml_get_errors(), &quot;auction house index&quot;);
+
+		$xpath = new \DOMXpath($doc);
+		$nodelist = $xpath-&gt;query(&quot;//div[@class='char-wrapper']/a[contains(@href,'character')]&quot;);
+		if (count($nodelist) &gt; 0 &amp;&amp; $nodelist !== false) {
+			$chars = array();
+			foreach($nodelist as $node) {
+				$href = explode(&quot;/&quot;, $node-&gt;getAttribute(&quot;href&quot;));
+				$charname = $href[5] . &quot;-&quot; . $href[4];
+
+				$onclick = $node-&gt;getAttribute(&quot;onclick&quot;);
+				if ($onclick == &quot;&quot;) {
+					$index = 0;
+				}
+				else {
+					preg_match(&quot;/\((\d+),/&quot;, $onclick, $matches);
+					$index = $matches[1];
+				}
+				$chars[$index] = $charname;
+				$this-&gt;log(&quot;Found character $index: &quot; . $charname);
+			}
+		}
+		else {
+			throw new Exception(&quot;Parsing of auction house index did not return any characters.&quot;, $this-&gt;last_http);
+		}
+
+		$this-&gt;character_list = $chars;
+
+		//This comes from a cookie, but is also output on the page as CDATA
+		//Could also pull from cookiejar, or &quot;Cookies:&quot;&quot; header field
+		$this-&gt;log(&quot;Parsing xstoken.&quot;);
+		$pattern = &quot;/var xsToken = '([a-z0-9\-]+)';/&quot;;
+
+		if (!preg_match($pattern, $response-&gt;body, $matches)) {
+			throw new Exception(&quot;Could not parse xstoken from auction house index.&quot;, $this-&gt;last_http);
+		}
+		else {
+			$this-&gt;xstoken = $matches[1];
+			$this-&gt;log(&quot;xstoken: &quot; . $this-&gt;xstoken);
+		}
+
+	}
+
+	/**
+	 * Generates a browser fingerprint
+	 *
+	 * In constructing the API, information must be supplied describing the browser
+	 * the API is to mimic. During login, the website generates a fingerprint for the browser
+	 * using javascript.
+	 *
+	 * &lt;p&gt;The strategy is to use random results for complicated keys, since they're not likely to be reversed,
+     * but actually hash more regular things like useragent, language, etc.&lt;/p&gt;
+	 * &lt;p&gt;Element 2 is always &quot;24&quot;, 10 is always &quot;false&quot;, 11 is always &quot;0;false;false&quot;&lt;/p&gt;
+	 * &lt;p&gt;The whole structure is sent as a JSON encoded array&lt;/p&gt;
+	 * 
+	 * &lt;p&gt;Each element is a base64 encoded murmur3 hash (x86,32bit) of the following fingerprintjs2 sources (.join()'ed with ';' so everything is a string):&lt;/p&gt;
+	 * + 0: userAgentKey (e.g. &quot;Mozilla/5.0 (Windows NT 6.1; WOW64; rv:48.0) Gecko/20100101 Firefox/48.0&quot;)
+	 * + 1: languageKey (e.g. &quot;en-US&quot;),
+	 * + 2: colorDepthKey (e.g. 24)
+	 * + 3: screenResolutionKey (e.g. [1200, 1920],[1200,1920])
+	 * + 4: timezoneOffsetKey (e.g. 420, from (new Date).getTimezoneOffset, which is minutes behind GMT)
+	 * + 5: cpuClassKey (e.g. &quot;navigatorCpuClass: unknown&quot;)
+	 * + 6: platformKey (e.g. &quot;navigatorPlatform: Win32&quot;)
+	 * + 7: pluginsKey (e.g. &quot;ActiveTouch General Plugin Container::ActiveTouch General Plugin Container Version 105::application/x-atgpc-plugin~gpc;&quot;)&quot;
+	 * + 10: getHasLiedLanguages() || getHasLiedResolution() || getHasLiedOs() || getHasLiedBrowser() (send &quot;false&quot;)
+	 * + 11: touchSupportKey (e.g. [0, false, false]),
+	 * + 12: fontsKey (e.g. &quot;Aharoni;Algerian;Andalus;Angsana New;AngsanaUPC;Aparajita;Arabic Typesetting;Arial&quot;)
+	 *
+	 * @param  object $browser_info A browser_info object
+	 *
+	 * @return string               JSON representation of the fingerprint
+	 */
+	private function generate_fp($browser_info) {
+		$this-&gt;log(&quot;Generating fp.&quot;);
+		$fp[0] = murmurhash3_base64($browser_info-&gt;useragent);
+		$fp[1] = murmurhash3_base64($browser_info-&gt;language);
+		$fp[2] = &quot;CEURno&quot;;
+		$fp[3] = murmurhash3_base64(min($browser_info-&gt;resolution) . &quot;,&quot; . max($browser_info-&gt;resolution) . &quot;;&quot; . min($browser_info-&gt;resolution) . &quot;,&quot; . max($browser_info-&gt;resolution));
+		$fp[4] = murmurhash3_base64(sprintf(&quot;%u&quot;, $browser_info-&gt;timezoneoffset));
+		$fp[5] = murmurhash3_base64(md5($browser_info-&gt;randomseed . &quot;salt1&quot;));
+		$fp[6] = murmurhash3_base64(md5($browser_info-&gt;randomseed . &quot;salt2&quot;));
+		$fp[7] = murmurhash3_base64(md5($browser_info-&gt;randomseed . &quot;salt3&quot;));
+		$fp[10] = &quot;DVYZ4X&quot;;
+		$fp[11] = &quot;DXpz63&quot;;
+		$fp[12] = murmurhash3_base64(md5($browser_info-&gt;randomseed . &quot;salt4&quot;));
+
+		$fp_json = str_replace(&quot;\\&quot;,&quot;&quot;,json_encode($fp));
+		$this-&gt;log(&quot;fp: &quot; . $fp_json);
+		return $fp_json;
+	}
+
+
+	/**
+	 * Makes an HTTP Request
+	 *
+	 * Low-level method to actually make HTTP requests using cURL. Keeps track of how many 302 redirects
+	 * to the login page are received so the API can detect when the server thinks it is
+	 * no longer logged in. POST requests are automatically generated as needed if $postdata
+	 * is not false.
+	 *
+	 * @param  string  $url      The URL to make a request to
+	 * @param  array   $header   An array of additional headers where keys are the header, and values are the header value (i.e. array(&quot;Accept-Language&quot; =&gt; &quot;en&quot;))
+	 * @param  boolean $referer  The URL of the referer to use or false to leave it out
+	 * @param  boolean $postdata A url-encoded string for data in POST requests
+	 *
+	 * @see http_transaction
+	 *
+	 * @return object            An http_transaction object containing request and response information
+	 */
+	private function make_request($url, $header = array(), $referer = false, $postdata = false) {
+		//If nothing is submitted, empty-string postdata for the http_transaction object
+		//And set a flag to false
+		if ($postdata === false) {
+			$post = false;
+			$postdata = &quot;&quot;;
+		}
+		else {
+			$post = true;
+		}
+		$this-&gt;log(&quot;Sending &quot; . ($post ? &quot;POST&quot; : &quot;GET&quot;) . &quot; request to: $url&quot;);
+
+		//Construct custom headers
+		if(!array_key_exists(&quot;Accept&quot;, $header))
+			$header = array_merge($header, array(&quot;Accept&quot; =&gt; &quot;text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8&quot;));
+
+		$header = array_merge($header, array(&quot;Connection&quot; =&gt; &quot;keep-alive&quot;));
+
+		$header_str = $this-&gt;browser_info-&gt;headers == &quot;&quot; ? &quot;&quot; : ($this-&gt;browser_info-&gt;headers . &quot;\n&quot;);
+		foreach($header as $key =&gt; $value) {
+			$header_str .= &quot;$key: $value\n&quot;;
+		}
+		$header = explode(&quot;\n&quot;, $header_str);
+
+		curl_setopt_array($this-&gt;ch, array(CURLOPT_URL =&gt; $url,
+										   CURLOPT_POST =&gt; $post,
+										   CURLOPT_HTTPHEADER =&gt; $header));
+
+		if ($post)
+			curl_setopt($this-&gt;ch, CURLOPT_POSTFIELDS, $postdata);
+		if ($referer)
+			curl_setopt($this-&gt;ch, CURLOPT_REFERER, $referer);
+
+		$response = curl_exec($this-&gt;ch);
+
+		if ($response === false)
+			throw new Exception(&quot;curl request to `$url` failed. curl errorno: &quot; . curl_errno($this-&gt;ch) .  &quot;. curl error: &quot; . curl_error($this-&gt;ch), array());
+
+		$header = trim(substr($response, 0, strpos($response,&quot;\r\n\r\n&quot;)));
+		$body = trim(substr($response, strpos($response,&quot;\r\n\r\n&quot;)+4));
+		$info = curl_getinfo($this-&gt;ch);
+		$request_header = trim($info[&quot;request_header&quot;]);
+		$http_code = $info[&quot;http_code&quot;];
+		$redirect_url = $info[&quot;redirect_url&quot;];
+		$last_url = $info[&quot;url&quot;];
+
+		$this-&gt;last_http = new http_transaction(compact(&quot;header&quot;, &quot;body&quot;, &quot;request_header&quot;, &quot;http_code&quot;, &quot;last_url&quot;, &quot;postdata&quot;));
+
+		if (LOG_HTTP)
+			$this-&gt;log($this-&gt;last_http-&gt;generate_log_string());
+
+		if ($http_code == 302 &amp;&amp; stristr($redirect_url,&quot;login&quot;)) {
+			$this-&gt;login_redirects++;
+			if ($this-&gt;login_redirects &gt; LOGIN_REDIRECT_LIMIT) {
+				$this-&gt;log(&quot;make_request() detected too many HTTP Code 302's redirecting to a login page. Assuming logged out.&quot;);
+				$this-&gt;logged_in = false;
+				$this-&gt;login_redirects = 0;
+			}
+		}
+		else {
+			$this-&gt;login_redirects = 0;
+		}
+
+		return $this-&gt;last_http;
+
+	}
+
+	/**
+	 * A custom function to handle errors from libxml by throwing wow_ah\Exceptions on fatal errors and logging the rest
+	 *
+	 * @param  array  $dom_errors   An array of the errors from libxml
+	 * @param  string $being_parsed A description of what is being parsed, to be used in log and error messages
+	 */
+	private function handle_libxml_errors($dom_errors, $being_parsed) {
+		if (count($dom_errors) &gt; 0) {
+			$fatal_log_string = &quot;&quot;;
+			foreach ($dom_errors as $error) {
+				if ($error-&gt;level == LIBXML_ERR_FATAL) {
+					$fatal_log_string .= &quot;{$error-&gt;code}: &quot; . trim($error-&gt;message) . &quot; &quot;;
+				}
+				else {
+					$this-&gt;log(&quot;libxml nonfatal error while parsing $being_parsed - {$error-&gt;code}: &quot; . trim($error-&gt;message));
+				}
+			}
+			if ($fatal_log_string != &quot;&quot;) {
+				throw new Exception(&quot;libxml fatal error(s) while parsing $being_parsed - &quot; . trim($fatal_log_string), $this-&gt;last_http);
+			}
+		}
+	}
+
+	/**
+	 * Convenience function for warnings
+	 *
+	 * @param  string $entry The text of the warning
+	 */
+	private function warn($entry) {
+		$this-&gt;log(&quot;WARNING: $entry&quot;);
+	}
+
+	/**
+	 * Add an entry to the log
+	 *
+	 * Log entries are buffered and flushed at a minimum specified interval (LOG_API_INTERVAL)
+	 * to avoid a disk write bottleneck when the API is used very fast. The logs only get flushed
+	 * when a new log entry is generated, so it is possible to lose entries if the API shuts down
+	 * unexpectedly. flush_log() can be used to manually flush the buffer, and is automatically
+	 * called by close().
+	 *
+	 * @param  string $entry The log entry
+	 */
+	private function log($entry) {
+		if (LOG_API) {
+			$this-&gt;log[] = date(&quot;[m-d-y H:i:s] &quot;) . $entry . PHP_EOL;
+			$now = time();
+			if ($now &gt; $this-&gt;last_log_time + LOG_API_INTERVAL) {
+				file_put_contents($this-&gt;logfile, implode(&quot;&quot;, $this-&gt;log), FILE_APPEND);
+				$this-&gt;log = array();
+				$this-&gt;last_log_time = $now;
+			}
+		}
+	}
+
+	/**
+	 * Manually flushes the log buffer to disk
+	 */
+	public function flush_log() {
+		if (LOG_API) {
+			file_put_contents($this-&gt;logfile, implode(&quot;&quot;, $this-&gt;log), FILE_APPEND);
+			$this-&gt;log = array();
+			$this-&gt;last_log_time = time();
+		}
+	}
+
+} //class wow_ah
+
+/**
+ * A wow_ah extension of object_from_array that throws wow_ah\exceptions when errors are encountered
+ *
+ * @see \object_from_array
+ */
+class object_from_array extends \object_from_array {
+	/** 
+	 * Throws a wow_ah\Exception with the \object_from_array error message
+	 *
+	 * @param string $message The message string from \object_from_array
+	 */
+	protected function error($message) {
+		throw new Exception($message, array(), Exception::ERROR_OBJECT_FROM_ARRAY_CONSTRUCTION);
+	}
+}
+
+/**
+ * The result of an HTTP, used by wow_ah's make_request()
+ *
+ * The result of an HTTP, used by wow_ah's make_request()
+ */
+class http_transaction extends object_from_array {
+	/** @var string The HTTP response header */
+	public $header = &quot;&quot;;
+	/** @var string The HTTP response body */
+	public $body = &quot;&quot;;
+	/** @var string The final HTTP request header send by cURL */
+	public $request_header = &quot;&quot;;
+	/** @var integer The HTTP code returned by the final request by cURL */
+	public $http_code = 0;
+	/** @var string The last URL requested by cURL (in cases of redirects) */
+	public $last_url = &quot;&quot;;
+	/** @var string The POST request data, if sent */
+	public $postdata = &quot;&quot;;
+
+	/**
+	 * Generates a readable string that can be added to the log file representing this transaction
+	 *
+	 * @return string A string containing the request header, response header and body
+	 */
+	public function generate_log_string() {
+		$log_string = &quot;[HTTP Transaction]&quot; . PHP_EOL . &quot;[Request]&quot; . PHP_EOL . $this-&gt;request_header . PHP_EOL;
+		if ($this-&gt;postdata != &quot;&quot;)
+			$log_string .= PHP_EOL . $this-&gt;postdata . PHP_EOL;
+		if ($this-&gt;header != &quot;&quot;) {
+			$log_string .= PHP_EOL . &quot;[Response]&quot; . PHP_EOL . $this-&gt;header;
+			if ($this-&gt;body != &quot;&quot;)
+				$log_string .= &quot;\r\n\r\n&quot; . $this-&gt;body . PHP_EOL;
+			else
+				$log_string .= PHP_EOL;
+		}
+
+		return $log_string;
+	}
+}
+
+/**
+ * A single auction from a search
+ *
+ * A single auction from a search
+ */
+class search_result extends object_from_array {
+	/** @var integer The auction id */
+	public $id = 0;
+	/** @var integer The item id */
+	public $item_id = 0;
+	/** @var string The item name */
+	public $item_name = &quot;&quot;;
+	/** @var string The seller's name */
+	public $seller = &quot;&quot;;
+	/** @var integer The quantity of the item */
+	public $quantity = 0;
+	/** @var string The time remaining in the auction (&quot;Short&quot;, &quot;Medium&quot;, &quot;Long&quot;, &quot;Very long&quot;) */
+	public $time = &quot;&quot;;
+	/** @var integer The minimum bid, in copper */
+	public $bid = 0;
+	/** @var integer The minimum bid per unit, in copper (calculated by API) */
+	public $unitBid = 0;
+	/** @var integer The buyout, in copper */
+	public $buyout = 0;
+	/** @var integer The buyout per unit, in copper (calculated by API) */
+	public $unitBuyout = 0;
+	/** @var string Timestamp of the search result, specified by the user, in mysql format */
+	public $timestamp = &quot;&quot;;
+}
+
+/**
+ * Represents the browser the API will mimic.
+ *
+ * Represents the browser the API will mimic.
+ *
+ * @see wow_ah::generate_fp()
+ */
+class browser_info extends object_from_array {
+	/** @var array The user need not specify additional browser headers */
+	protected static $optional = array(&quot;headers&quot;);
+
+	/** @var string Sent as the User-Agent header */
+	public $useragent = &quot;&quot;;
+	/** @var string A language string used for fingerprint generation (e.g. &quot;en-US&quot; ) */
+	public $language = &quot;&quot;;
+	/** @var array The browser resolution used for fingerprint generation (e.g. array(1080, 1920)) */
+	public $resolution = array(0, 0);
+	/** @var integer The timezone offset (e.g. 420, from javscript's (new Date).getTimezoneOffset, which is minutes behind GMT)  */
+	public $timezoneoffset = 0;
+	/** @var string A random seed used to generate certain values in the fingerprint */
+	public $randomseed = &quot;&quot;;
+	/** @var string Additional headers sent by cURL as `Header`:`value`, separated by \n (e.g. &quot;Accept-Language: en-US,en;q=0.5\nDNT: 1&quot;)*/
+	public $headers = &quot;&quot;;
+}
+
+/**
+ * An item in the character's inventory
+ */
+class inventory_item extends object_from_array {
+	/** @var integer The item id */
+	public $id = 0;
+	/** @var string The item name */
+	public $name = &quot;&quot;;
+	/** @var integer The item quality (0 = Poor, 1 = Uncommon, 2 = Common, 3 = Rare, 4 = Epic) */
+	public $quality = 0;
+	/** @var integer The max quantity per stack */
+	public $maxQty = 0;
+	/** @var integer The total number in the inventory */
+	public $q0 = 0;
+	/** @var integer The total number in the character's bags */
+	public $q1 = 0;
+	/** @var integer The total number in the character's bank */
+	public $q2 = 0;
+	/** @var integer The total number in the character's mail */
+	public $q3 = 0;
+}
+
+/**
+ * Container for all of the selected characters auctions
+ */
+class auctions {
+	/** @var array An indexed array of active_auction objects */
+	public $active = array();
+	/** @var array An indexed array of sold_auction objects */
+	public $sold = array();
+	/** @var array An indexed array of ended_auction objects */
+	public $ended = array();
+}
+
+/**
+ * An active auction listed by the selected character
+ *
+ * An active auction listed by the selected character
+ */
+class active_auction extends object_from_array {
+	/** @var integer The auction id */
+	public $id = 0;
+	/** @var integer The item id */
+	public $item_id = 0;
+	/** @var string The item name */
+	public $item_name = &quot;&quot;;
+	/** @var integer The quantity of the item */
+	public $quantity = 0;
+	/** @var string The time remaining in the auction (&quot;Short&quot;, &quot;Medium&quot;, &quot;Long&quot;, &quot;Very long&quot;) */
+	public $time = &quot;&quot;;
+	/** @var string The high bidder of the auction */
+	public $high_bidder = &quot;&quot;;
+	/** @var integer The minimum bid, in copper */
+	public $bid = 0;
+	/** @var integer The minimum bid per unit, in copper (calculated by API) */
+	public $unitBid = 0;
+	/** @var integer The buyout, in copper */
+	public $buyout = 0;
+	/** @var integer The buyout per unit, in copper (calculated by API) */
+	public $unitBuyout = 0;
+}
+
+/**
+ * A sold auction listed by the selected character
+ *
+ * A sold auction listed by the selected character
+ */
+class sold_auction extends object_from_array {
+	/** @var array mail id's do not exist for sold auctions that are not claimable */
+	protected static $optional = array(&quot;mail_id&quot;);
+
+	/** @var integer The auction id */
+	public $id = 0;
+	/** @var integer The item id */
+	public $item_id = 0;
+	/** @var string The item name */
+	public $item_name = &quot;&quot;;
+	/** @var integer The quantity of the item */
+	public $quantity = 0;
+	/** @var int The level required to use the item */
+	public $level = 0;
+	/** @var string The winner of the auction */
+	public $buyer = &quot;&quot;;
+	/** @var integer The amount of money earned */
+	public $price = 0;
+	/** @var boolean Whether the earned money is claimable */
+	public $claimable = false;
+	/** @var integer The id of the mail containing earned money */
+	public $mail_id = 0;
+
+}
+
+/**
+ * An ended auction previously listed by the selected character
+ *
+ * An ended auction previously listed by the selected character
+ */
+class ended_auction extends object_from_array {
+	/** @var integer The auction id */
+	public $id = 0;
+	/** @var integer The item id */
+	public $item_id = 0;
+	/** @var string The item name */
+	public $item_name = &quot;&quot;;
+	/** @var integer The quantity of the item */
+	public $quantity = 0;
+	/** @var int The level required to use the item */
+	public $level = 0;
+	/** @var string The status of the auction */
+	public $status = &quot;&quot;;
+	/** @var integer The time left before the returned item in the mail expires (in ms)*/
+	public $time = 0;
+}
+
+/**
+ * A custom exception for wow_ah
+ *
+ * The wow_ah\Exception stores the last http transaction, and allows for 
+ * chaining of exceptions, so an error can be traced through the API. The last http
+ * transaction is automatically passed up the chain unless a new link has a transaction
+ * specified. Exception messages are automatically logged to the file set by set_logfile().
+ *
+ * Error codes can be or'd with the ERROR_BUT_RETRY when the API suggests the operation did not &quot;hard&quot; fail
+ * (e.g. redirect to login page, which happens intermittently but regularly for no reason)
+ */
+class Exception extends \Exception {
+	/** Error flag that indicates the operation should be retried (e.g. received incorrect 302 redirect to login page) */
+	const ERROR_BUT_RETRY = 1;
+	const ERROR_CHAR_IN_GAME = 2;
+	const ERROR_BID_TOO_LOW = 4;
+	const ERROR_AUCTION_NOT_FOUND = 6;
+	const ERROR_ACCOUNT_DISABLED = 8;
+	const ERROR_OBJECT_FROM_ARRAY_CONSTRUCTION = 10;
+	const ERROR_UNEXPECTED_HTTP_CODE = 12;
+
+	/** @var object An http_transaction object for the last transaction before the exception was thrown */
+	private $last_http;
+	/** @var string Location of the error log file */
+	protected static $logfile = &quot;&quot;;
+
+	/**
+	 * Creates the exception
+	 *
+	 * @param string  $message   The exception message
+	 * @param object  $last_http An http_transaction for the last transaction made before the exception was thrown
+	 * @param integer $code      The error code
+	 * @param object  $previous  The previous exception, if any
+	 *
+	 * @see http_transaction
+	 */
+	public function __construct($message, $last_http, $code = 0, $previous = NULL) {
+		file_put_contents(static::$logfile, date(&quot;[m-d-y H:i:s] &quot;) . &quot;ERROR: &quot; . $message . PHP_EOL, FILE_APPEND);
+		if (!LOG_HTTP) {
+			if (!empty((array) $last_http)) {
+				$this-&gt;last_http = $last_http;
+			}
+			else if (!is_null($previous) &amp;&amp; isset($previous-&gt;last_http) &amp;&amp; !empty((array) $previous-&gt;last_http)) {
+				$this-&gt;last_http = $previous-&gt;last_http;
+			} 			
+		}
+
+		if (!is_null($previous) &amp;&amp; $previous-&gt;getCode() &amp; self::ERROR_BUT_RETRY)
+			parent::__construct($message, $code | self::ERROR_BUT_RETRY, $previous);
+		else
+			parent::__construct($message, $code, $previous);
+
+	}
+
+	/**
+	 * Return all exception messages in a chain
+	 *
+	 * @return array An indexed array of exception messages
+	 */
+	public function getAllMessages() {
+		$messages[] = $this-&gt;getMessage();
+		$previous = $this-&gt;getPrevious();
+		while (!is_null($previous)) {
+			$messages[] = $previous-&gt;getMessage();
+			$previous = $previous-&gt;getPrevious();
+		}
+
+		return $messages;
+
+	}
+
+	/**
+	 * Logs the last http transaction made before the exception in case LOG_HTTP is false
+	 */
+	public function log_last_http() {
+		if (!LOG_HTTP &amp;&amp; !empty((array) $this-&gt;last_http) &amp;&amp; self::$logfile != &quot;&quot;) {
+			file_put_contents(self::$logfile, date(&quot;[m-d-y H:i:s] &quot;) . &quot;Dumping last HTTP transaction.&quot; . PHP_EOL . $this-&gt;last_http-&gt;generate_log_string(), FILE_APPEND);
+		}
+	}
+
+	/**
+	 * Sets the file where exception messages are logged
+	 *
+	 * @param string $logfile The location of the log file
+	 */
+	static public function set_logfile($logfile) {
+		if (static::$logfile == &quot;&quot;)
+			static::$logfile = $logfile;
+	}
+
+} //class Exception
+
+?&gt;</pre>
+        <script type="text/javascript">
+             SyntaxHighlighter.all();
+             jQuery('.gutter div').each(function(key, data){
+                jQuery(data).prepend('<a name="L'+jQuery(data).text()+'"/>');
+             });
+        </script>
+    </body>
+</html>
