@@ -1,0 +1,186 @@
+0: Weapon
+1: Armor
+2: Container
+3: Consumable
+4: Glyph
+5: Tradeskill
+6: Recipe
+7: Gem
+8: Miscellaneous
+9: Quest
+10: Battle Pets
+
+Subcategories for Weapon
+64: One-Handed Axes
+63: Two-Handed Axes
+62: Bows
+61: Guns
+69: One-Handed Maces
+68: Two-Handed Maces
+67: Polearms
+65: One-Handed Swords
+72: Two-Handed Swords
+71: Warglaives
+70: Staves
+75: Fist Weapons
+74: Miscellaneous
+73: Daggers
+58: Thrown
+56: Crossbows
+57: Wands
+59: Fishing Poles
+
+Subcategories for Armor
+35: Miscellaneous
+36: Cloth
+39: Leather
+41: Mail
+43: Plate
+45: Cosmetic
+47: Shields
+
+Subcategories for Container
+85: Bag
+86: Herb Bag
+79: Enchanting Bag
+77: Engineering Bag
+83: Gem Bag
+81: Mining Bag
+88: Leatherworking Bag
+87: Inscription Bag
+91: Tackle Box
+89: Cooking Bag
+
+Subcategories for Consumable
+104: Explosives and Devices
+114: Potion
+116: Elixir
+118: Flask
+99: Food &amp; Drink
+121: Bandage
+126: Other
+125: Vantus Runes
+
+Subcategories for Glyph
+105: Warrior
+100: Paladin
+98: Hunter
+102: Rogue
+101: Priest
+110: Death Knight
+109: Shaman
+113: Mage
+112: Warlock
+107: Monk
+106: Druid
+108: Demon Hunter
+
+Subcategories for Tradeskill
+127: Parts
+124: Jewelcrafting
+115: Cloth
+117: Leather
+119: Metal &amp; Stone
+120: Cooking
+122: Herb
+103: Elemental
+128: Other
+123: Enchanting
+111: Inscription
+
+Subcategories for Recipe
+11: Book
+12: Leatherworking
+13: Tailoring
+14: Engineering
+15: Blacksmithing
+16: Cooking
+17: Alchemy
+31: First Aid
+30: Enchanting
+29: Fishing
+28: Jewelcrafting
+32: Inscription
+
+Subcategories for Gem
+60: Intellect
+40: Agility
+38: Strength
+44: Stamina
+42: Spirit
+49: Critical Strike
+46: Mastery
+52: Haste
+51: Versatility
+54: Other
+53: Multiple Stats
+55: Artifact Relic
+
+Subcategories for Miscellaneous
+84: Junk
+82: Reagent
+80: Companion Pets
+78: Holiday
+76: Other
+90: Mount
+
+Subcategories for Batle Pets
+168: Humanoid
+169: Dragonkin
+170: Flying
+171: Undead
+172: Critter
+173: Magic
+174: Elemental
+175: Beast
+176: Aquatic
+177: Mechanical
+
+Sub-Subcategories for Armor,Miscellaneous
+129: Head
+130: Neck
+131: Shirt
+132: Finger
+133: Trinket
+134: Held in off-hand
+
+Sub-Subcategories for Armor,Cloth
+135: Head
+136: Shoulder
+137: Chest
+138: Waist
+139: Legs
+140: Feet
+141: Wrists
+142: Hands
+143: Back
+
+Sub-Subcategories for Armor,Leather
+144: Head
+145: Shoulder
+146: Chest
+147: Waist
+148: Legs
+149: Feet
+150: Wrists
+151: Hands
+
+Sub-Subcategories for Armor,Mail
+152: Head
+153: Shoulder
+154: Chest
+155: Waist
+156: Legs
+157: Feet
+158: Wrists
+159: Hands
+
+Sub-Subcategories for Armor,Plate
+160: Head
+161: Shoulder
+162: Chest
+163: Waist
+164: Legs
+165: Feet
+166: Wrists
+167: Hands
