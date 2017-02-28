@@ -92,8 +92,10 @@ class wow_ah {
 	private $cookiefile;
 	/** @var string The battle.net region specified by the user in the constructor */
 	private $region;
-	/** @var string The battle.net language specified by the user in the constructor */
+	/** @var string The language that is used in armory urls */
 	private $lang;
+	/** @var string The language that is used in battle.net login urls, generally comes from the constructor */
+	private $loginform_lang;
 	/**
 	 * @var object A browser_info object the API uses to generate HTTP requests
  	 * @see browser_info
@@ -157,7 +159,7 @@ class wow_ah {
 	 * that the API will present
 	 * 
 	 * @param string $region       Battle.net region to use as the subdomain (e.g. &quot;us&quot;) 
-	 * @param string $lang         Battle.net language (e.g. &quot;en&quot;, used in the url as /wow/en/)
+	 * @param string $lang         Battle.net language (e.g. &quot;en&quot;, used in the Battle.net login as in http://us.battle.net/en/?login)
 	 * @param string $cookiefile   Location of the file that stores cookies
 	 * @param string $logfile      Location of the log file. This contains errors and log entries
 	 * @param array $browser_info  An associative array containing information about the browser 
@@ -168,7 +170,16 @@ class wow_ah {
 		Exception::set_logfile($logfile);
 		$this-&gt;log(&quot;Initializing API...&quot;);
 		$this-&gt;region = $region;
-		$this-&gt;lang = $lang;
+		switch ($this-&gt;region) {
+			case &quot;eu&quot;:
+			case &quot;us&quot;:
+				$this-&gt;lang = &quot;en&quot;;
+				break;
+			default:
+				$this-&gt;lang = $lang;
+		}
+		$this-&gt;loginform_lang = $lang;
+
 		$this-&gt;browser_info = new browser_info($browser_info);
 		$this-&gt;fp = $this-&gt;generate_fp($this-&gt;browser_info);
 		$this-&gt;cookiefile = $cookiefile;
@@ -360,16 +371,18 @@ class wow_ah {
 	 * Logs the user in
 	 *
 	 * Login procedure:
-	 * + GET https://worldofwarcraft.com/{lang}-{region}/ - no referrer
-  	 * + GET https://worldofwarcraft.com/{lang}-{region}/login - referrer https://worldofwarcraft.com/en-us/
-  	 * + Follow redirects to the login page, which should match the url {region}.battle.net/login/{lang}/ and return a code 200
+	 * + GET http://{region}.battle.net/{loginform_lang}/ - no referrer
+  	 * + GET http://{region}.battle.net/{loginform_lang}/?login - referrer above
+  	 * + Follow redirects to the login page, which should match the url https://{region}.battle.net/login/&lt;some_lang&gt;/?ref=http://{region}.battle.net/{loginform_lang}/ and return a code 200
   	 * + Check for captcha
-  	 * + POST srp info - referer login form url
-  	 * + POST login form - referer login form url
+  	 * + POST srp info - referrer login form url
+  	 * + POST login form - referrer login form url
   	 * + If the last url is the login form - bad password.
   	 * + If the last url is authenticator, send status checks until accepted, then GET authenticator url + 17 digit random number - referer authenticator url
-  	 * + Should end up at wow website, which should match the url https://worldofwarcraft.com/{lang}-{region}/ with a code 200
-  	 * + GET the first character URL (matching http://{region}.battle.net/wow/{lang}/character/{server}/{character}/simple) - referer wow website
+  	 * + Should end up at battle.net website, which should match the url http://{region}.battle.net/{loginform_lang}/ with a code 200
+  	 * + GET http://{region}.battle.net/wow/ - referrer above, follow to an https://worldofwarcraft.com/&lt;some lang&gt;/ with a code 200
+  	 * + GET https://worldofwarcraft.com/&lt;some lang&gt;/login referrer above, which should redirect you to above with a code 200
+  	 * + GET the first character URL (matching http://{region}.battle.net/wow/{lang}/character/{server}/{character}/simple) - referer above
   	 * + Make sure you actually get there
   	 * + Get auction house index - referer first character URL
 	 * 
@@ -390,23 +403,23 @@ class wow_ah {
 
 		try {
 			//Get the wow website
-			$wow_url = &quot;https://worldofwarcraft.com/{$this-&gt;lang}-{$this-&gt;region}/&quot;;
-			$response = $this-&gt;make_request($wow_url);
+			$bnet_url = &quot;http://{$this-&gt;region}.battle.net/{$this-&gt;loginform_lang}/&quot;;
+			$response = $this-&gt;make_request($bnet_url);
 
 			if ($response-&gt;http_code != &quot;200&quot;)
-				throw new Exception(&quot;HTTP GET request to world of warcraft website returned http code {$response-&gt;http_code}. Expected 200.&quot;, $this-&gt;last_http, Exception::ERROR_UNEXPECTED_HTTP_CODE);
+				throw new Exception(&quot;HTTP GET request to battle.net http code {$response-&gt;http_code}. Expected 200.&quot;, $this-&gt;last_http, Exception::ERROR_UNEXPECTED_HTTP_CODE);
 
 			//Get the login form
-			$response = $this-&gt;make_request($wow_url . &quot;login&quot;, array(), $wow_url);
+			$response = $this-&gt;make_request($bnet_url . &quot;?login&quot;, array(), $bnet_url);
 
 			$loginform_url = $response-&gt;last_url;
-			$pattern_loginform_url = &quot;#^https://{$this-&gt;region}.battle.net/login/{$this-&gt;lang}/\?#&quot;;
+			$pattern_loginform_url = &quot;#^https://{$this-&gt;region}.battle.net/login/[\w-]+/\?ref=http://{$this-&gt;region}.battle.net/{$this-&gt;loginform_lang}/#&quot;;
 
 			if ($response-&gt;http_code != &quot;200&quot;)
 				throw new Exception(&quot;HTTP GET request to login form returned http code {$response-&gt;http_code}. Expected 200.&quot;, $this-&gt;last_http, Exception::ERROR_UNEXPECTED_HTTP_CODE);
 
 			if (!preg_match($pattern_loginform_url, $loginform_url))
-				throw new Exception(&quot;HTTP GET request to world of warcraft login form did not successfully return bnet login form. Redirected to $loginform_url.&quot;, $this-&gt;last_http);
+				throw new Exception(&quot;HTTP GET request to battle.net login form did not successfully return bnet login form. Redirected to $loginform_url.&quot;, $this-&gt;last_http);
 				
 			if (stristr($response-&gt;body, &quot;/login/captcha.jpg&quot;))
 				throw new Exception(&quot;Detected captcha in bnet login form. Captcha is not yet supported.&quot;, $this-&gt;last_http);
@@ -542,8 +555,26 @@ class wow_ah {
 
 			if (stristr($login_redirect_url, &quot;challenge&quot;))
 				throw new Exception(&quot;Battle.net issued login challenge. Please login manually once.&quot;);
-			else if ($login_redirect_url != $wow_url)
-				throw new Exception(&quot;Redirected to $login_redirect_url. Expected $wow_url.&quot;, $this-&gt;last_http);
+			else if ($login_redirect_url != $bnet_url)
+				throw new Exception(&quot;Redirected to $login_redirect_url. Expected $bnet_url.&quot;, $this-&gt;last_http);
+
+			//Get to the wow homepage
+			$response = $this-&gt;make_request(&quot;http://{$this-&gt;region}.battle.net/wow/&quot;, array(), $bnet_url);
+
+			$wow_url = $response-&gt;last_url;
+			if ($response-&gt;http_code != &quot;200&quot;)
+				throw new Exception(&quot;HTTP GET request to world of warcraft page returned http code {$response-&gt;http_code}. Expected 200.&quot;, $this-&gt;last_http, Exception::ERROR_UNEXPECTED_HTTP_CODE);
+			else if(!stristr($wow_url, &quot;https://worldofwarcraft.com/&quot;))
+				throw new Exception(&quot;HTTP GET request to world of warcraft homepage did not successfully return wow homepage. Redirected to $wow_url.&quot;, $this-&gt;last_http);
+
+			//Log in to the wow homepage
+			$response = $this-&gt;make_request($wow_url . &quot;login&quot;, array(), $wow_url);
+			$wow_url2 = $response-&gt;last_url;
+
+			if ($response-&gt;http_code != &quot;200&quot;)
+				throw new Exception(&quot;HTTP GET request to world of warcraft login returned http code {$response-&gt;http_code}. Expected 200.&quot;, $this-&gt;last_http, Exception::ERROR_UNEXPECTED_HTTP_CODE);
+			else if(!stristr($wow_url2, $wow_url))
+				throw new Exception(&quot;HTTP GET request to world of warcraft login did not successfully redirect to wow homepage. Redirected to $wow_url2.&quot;, $this-&gt;last_http);
 
 			$this-&gt;log(&quot;Logged in. Getting first character page.&quot;);
 			$pattern_character_url = &quot;#http://{$this-&gt;region}.battle.net/wow/{$this-&gt;lang}/character/.*?/.*?/simple#&quot;;
