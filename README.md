@@ -47,6 +47,8 @@ The command line test interface is implemented in wow_ah_test.php. Run with `php
 
 ## Example usage
 
+See https://github.com/kaysond/wow_ah_bot
+
 ```php
 require("wow_ah.class.php");
 
